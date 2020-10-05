@@ -8,6 +8,10 @@
 		<AssemblyName>Excel.WriteToSeparateField</AssemblyName>
     </PropertyGroup>
 
+    <ItemGroup>
+      <PackageReference Include="DocumentFormat.OpenXml" Version="2.11.3" />
+    </ItemGroup>
+
 	<!--
 	<PropertyGroup Condition="'$(Configuration)' == 'assembly'">
         <OutputType>Library</OutputType>

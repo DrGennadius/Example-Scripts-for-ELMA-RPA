@@ -172,8 +172,10 @@ namespace ELMA.RPA.Scripts
             }
             else
             {
+                // Обязательно необходимо соблюсти последовательность индексов
+                Row nextRow = sheetData.Elements<Row>().OrderBy(r => r.RowIndex).FirstOrDefault(r => r.RowIndex > rowIndex);
                 row = new Row() { RowIndex = rowIndex };
-                sheetData.Append(row);
+                sheetData.InsertBefore(row, nextRow);
             }
 
             // Если ячейки с указанным именем столбца нет, то добавляем.
