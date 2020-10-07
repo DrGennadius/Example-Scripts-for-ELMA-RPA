@@ -5,8 +5,12 @@
         <TargetFramework>netcoreapp3.1</TargetFramework>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<RootNamespace>ELMA.RPA.Scripts</RootNamespace>
-		<AssemblyName>Excel.WriteTableToExcelSheet</AssemblyName>
+		<AssemblyName>Excel.WriteDataTableToExcelSheet</AssemblyName>
     </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="DocumentFormat.OpenXml" Version="2.11.3" />
+    </ItemGroup>
 
 	<!--
 	<PropertyGroup Condition="'$(Configuration)' == 'assembly'">

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
@@ -7,6 +7,10 @@
 		<AssemblyName>Excel.HighlightingBold</AssemblyName>
 		<RootNamespace>ELMA.RPA.Scripts</RootNamespace>
     </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="DocumentFormat.OpenXml" Version="2.11.3" />
+    </ItemGroup>
 
 	<!--
 	<PropertyGroup Condition="'$(Configuration)' == 'assembly'">

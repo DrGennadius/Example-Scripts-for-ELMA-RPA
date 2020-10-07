@@ -17,5 +17,14 @@ namespace ELMA.RPA.Scripts
             get;
             set;
         }
+
+        /// <summary>
+        /// Наименование листа
+        /// </summary>
+        public String SheetName
+        {
+            get;
+            set;
+        }
     }
 }

@@ -9,7 +9,11 @@ namespace ELMA.RPA.Scripts
     {
         static void Main()
         {
-            var context = new Context();
+            var context = new Context()
+            {
+                ExcelFilePath = "Пример.xlsx",
+                SheetName = "Тестовый лист"
+            };
             var scriptActivity = new ScriptActivity();
             scriptActivity.Execute(context);
             Console.ReadKey();
