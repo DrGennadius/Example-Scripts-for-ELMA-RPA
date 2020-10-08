@@ -7,6 +7,16 @@
 		<RootNamespace>ELMA.RPA.Scripts</RootNamespace>
     </PropertyGroup>
 
+    <ItemGroup>
+      <PackageReference Include="MailKit" Version="2.9.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="devconfig.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
 	<!--
 	<PropertyGroup Condition="'$(Configuration)' == 'assembly'">
         <OutputType>Library</OutputType>
