@@ -35,6 +35,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Настройки в json"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Получение непрочитанных писем 2", "Email\Получение непрочитанных писем 2\Получение непрочитанных писем 2.csproj", "{18E98CA4-D502-4D99-9A5E-B4D1A64972EF}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Отправка письма", "Email\Отправка письма\Отправка письма.csproj", "{B117CDC9-5CB7-4217-A9FC-FC4BC91F2F09}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -89,6 +91,10 @@ Global
 		{18E98CA4-D502-4D99-9A5E-B4D1A64972EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{18E98CA4-D502-4D99-9A5E-B4D1A64972EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{18E98CA4-D502-4D99-9A5E-B4D1A64972EF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B117CDC9-5CB7-4217-A9FC-FC4BC91F2F09}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B117CDC9-5CB7-4217-A9FC-FC4BC91F2F09}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B117CDC9-5CB7-4217-A9FC-FC4BC91F2F09}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B117CDC9-5CB7-4217-A9FC-FC4BC91F2F09}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -106,6 +112,7 @@ Global
 		{77A1281F-42AE-4AD7-AEC1-3D86E140BF22} = {0E4A3D42-01A2-42CC-8910-E1412E460A53}
 		{25B3A35A-DB59-42DB-B3E7-E808BAE9853F} = {876E0C58-18C8-42EB-941A-4AED7708A8BB}
 		{18E98CA4-D502-4D99-9A5E-B4D1A64972EF} = {0E4A3D42-01A2-42CC-8910-E1412E460A53}
+		{B117CDC9-5CB7-4217-A9FC-FC4BC91F2F09} = {0E4A3D42-01A2-42CC-8910-E1412E460A53}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {650EC797-C771-4943-A2B1-889572DA40D0}

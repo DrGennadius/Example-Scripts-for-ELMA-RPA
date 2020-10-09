@@ -1,0 +1,11 @@
+{
+  "host": "smtp.gmail.com",
+  "port": 465,
+  "useSsl": true,
+  "userName": null,
+  "password": null,
+  "subject": "Тестовая тема",
+  "sender": "Тестирович Тестр \u003C***@***.com\u003E",
+  "reciver": "Зыков Геннадий \u003C***@***.com\u003E",
+  "messageText": "Бла-бла-бла, это текст тестового сообщения"
+}
