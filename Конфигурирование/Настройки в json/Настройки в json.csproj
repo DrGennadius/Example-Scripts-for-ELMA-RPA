@@ -2,15 +2,10 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>netcoreapp3.1</TargetFramework>
+        <TargetFramework>net5.0</TargetFramework>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<RootNamespace>ELMA.RPA.Scripts</RootNamespace>
+        <AssemblyName>Config.Json</AssemblyName>
     </PropertyGroup>
-
-	<!--
-	<PropertyGroup Condition="'$(Configuration)' == 'assembly'">
-        <OutputType>Library</OutputType>
-    </PropertyGroup>
-	-->
 	
 </Project>

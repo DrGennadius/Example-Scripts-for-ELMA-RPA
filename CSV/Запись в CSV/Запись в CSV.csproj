@@ -1,16 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>netcoreapp3.1</TargetFramework>
-		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-		<RootNamespace>ELMA.RPA.Scripts</RootNamespace>
+        <TargetFramework>net5.0</TargetFramework>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <AssemblyName>CSV.WriteToFile</AssemblyName>
+        <RootNamespace>ELMA.RPA.Scripts</RootNamespace>
     </PropertyGroup>
-
-	<!--
-	<PropertyGroup Condition="'$(Configuration)' == 'assembly'">
-        <OutputType>Library</OutputType>
-    </PropertyGroup>
-	-->
-	
 </Project>

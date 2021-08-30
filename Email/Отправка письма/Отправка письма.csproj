@@ -2,9 +2,10 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>netcoreapp3.1</TargetFramework>
-		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-		<RootNamespace>ELMA.RPA.Scripts</RootNamespace>
+        <TargetFramework>net5.0</TargetFramework>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <AssemblyName>Email.SendMail</AssemblyName>
+        <RootNamespace>ELMA.RPA.Scripts</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>
@@ -25,11 +26,5 @@
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>
-
-	<!--
-	<PropertyGroup Condition="'$(Configuration)' == 'assembly'">
-        <OutputType>Library</OutputType>
-    </PropertyGroup>
-	-->
 	
 </Project>
