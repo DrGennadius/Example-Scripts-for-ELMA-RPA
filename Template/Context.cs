@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using ELMA.RPA.SDK.Commons.Params;
 
 namespace ELMA.RPA.Scripts
 {
@@ -44,8 +45,22 @@ namespace ELMA.RPA.Scripts
             set;
         }
 
-        // <value>IntegerParam</value>
+        // <value>integerparam</value>
         public Nullable<Int64> integerparam
+        {
+            get;
+            set;
+        }
+
+        // <value>TableParam</value>
+        public RpaTable tableparam
+        {
+            get;
+            set;
+        }
+
+        // <value>StructParam</value>
+        public RpaStructure structparam
         {
             get;
             set;

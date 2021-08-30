@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using System.Linq;
 using System.Collections.Generic;
+using ELMA.RPA.SDK.Commons.Params;
 
 namespace ELMA.RPA.Scripts
 {
