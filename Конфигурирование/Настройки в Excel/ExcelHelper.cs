@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace ELMA.RPA.Scripts
@@ -17,6 +18,11 @@ namespace ELMA.RPA.Scripts
     {
         public ExcelHelper(string filePath)
         {
+            if (string.IsNullOrEmpty(filePath))
+            {
+                throw new ArgumentException($"'{nameof(filePath)}' не может быть null или пустым.", nameof(filePath));
+            }
+
             OpenOrCreate(filePath);
         }
 
@@ -42,6 +48,11 @@ namespace ELMA.RPA.Scripts
         /// <returns></returns>
         public SpreadsheetDocument OpenOrCreate(string filePath)
         {
+            if (string.IsNullOrEmpty(filePath))
+            {
+                throw new ArgumentException($"'{nameof(filePath)}' не может быть null или пустым.", nameof(filePath));
+            }
+
             FilePath = filePath;
             return OpenOrCreate();
         }
@@ -52,6 +63,11 @@ namespace ELMA.RPA.Scripts
         /// <returns></returns>
         public SpreadsheetDocument OpenOrCreate()
         {
+            if (string.IsNullOrEmpty(FilePath))
+            {
+                throw new ArgumentException($"'{nameof(FilePath)}' не может быть null или пустым.", nameof(FilePath));
+            }
+
             bool excelExists = File.Exists(FilePath);
             Document = excelExists
                 ? SpreadsheetDocument.Open(FilePath, true)
@@ -80,6 +96,11 @@ namespace ELMA.RPA.Scripts
         /// <returns></returns>
         public Worksheet GetOrCreateWorksheet(string worksheetName)
         {
+            if (string.IsNullOrEmpty(worksheetName))
+            {
+                throw new ArgumentException($"'{nameof(worksheetName)}' не может быть null или пустым.", nameof(worksheetName));
+            }
+
             WorksheetPart worksheetPart = null;
             Sheet sheet = Workbook.Descendants<Sheet>().FirstOrDefault(s => s.Name == worksheetName);
             if (sheet == null)
@@ -119,8 +140,19 @@ namespace ELMA.RPA.Scripts
             return worksheetPart.Worksheet;
         }
 
+        /// <summary>
+        /// Получить и создать строку.
+        /// </summary>
+        /// <param name="worksheet"></param>
+        /// <param name="rowIndex"></param>
+        /// <returns></returns>
         public Row GetOrCreateRow(Worksheet worksheet, uint rowIndex)
         {
+            if (worksheet is null)
+            {
+                throw new ArgumentNullException(nameof(worksheet));
+            }
+
             SheetData sheetData = worksheet.GetFirstChild<SheetData>();
             Row row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex == rowIndex);
             if (row == null)
@@ -135,14 +167,38 @@ namespace ELMA.RPA.Scripts
             return row;
         }
 
+        #region Get cell value
+
+        /// <summary>
+        /// Получить и создать строку.
+        /// </summary>
+        /// <param name="worksheet"></param>
+        /// <param name="columnName"></param>
+        /// <param name="row"></param>
+        /// <returns></returns>
         public Cell GetOrCreateCell(Worksheet worksheet, string columnName, Row row)
         {
+            if (worksheet is null)
+            {
+                throw new ArgumentNullException(nameof(worksheet));
+            }
+
+            if (string.IsNullOrEmpty(columnName))
+            {
+                throw new ArgumentException($"'{nameof(columnName)}' не может быть null или пустым.", nameof(columnName));
+            }
+
+            if (row is null)
+            {
+                throw new ArgumentNullException(nameof(row));
+            }
+
             string cellReference = columnName + row.RowIndex;
             Cell cell = row.Elements<Cell>().FirstOrDefault(c => c.CellReference.Value == cellReference);
             
             if (cell == null)
             {
-                Cell refCell = row.Elements<Cell>().FirstOrDefault(x => string.Compare(cell.CellReference.Value, cellReference, true) > 0);
+                Cell refCell = null;
                 foreach (Cell celli in row.Elements<Cell>())
                 {
                     if (celli.CellReference.Value.Length == cellReference.Length)
@@ -176,105 +232,295 @@ namespace ELMA.RPA.Scripts
         /// <returns></returns>
         public Cell GetOrCreateCell(Worksheet worksheet, string columnName, uint rowIndex)
         {
-            SheetData sheetData = worksheet.GetFirstChild<SheetData>();
+            if (worksheet is null)
+            {
+                throw new ArgumentNullException(nameof(worksheet));
+            }
+
+            if (string.IsNullOrEmpty(columnName))
+            {
+                throw new ArgumentException($"'{nameof(columnName)}' не может быть null или пустым.", nameof(columnName));
+            }
+
             Row row = GetOrCreateRow(worksheet, rowIndex);
             return GetOrCreateCell(worksheet, columnName, row);
         }
 
-        public Cell GetOrCreateCell(Worksheet worksheet, string cellReference)
+        /// <summary>
+        /// Получить или создать ячейку по адресу (например, B2).
+        /// </summary>
+        /// <param name="worksheet"></param>
+        /// <param name="cellAddress"></param>
+        /// <returns></returns>
+        public Cell GetOrCreateCell(Worksheet worksheet, string cellAddress)
         {
-            throw new NotImplementedException();
+            if (worksheet is null)
+            {
+                throw new ArgumentNullException(nameof(worksheet));
+            }
+
+            if (string.IsNullOrEmpty(cellAddress))
+            {
+                throw new ArgumentException($"'{nameof(cellAddress)}' не может быть null или пустым.", nameof(cellAddress));
+            }
+
+            string columnName = Regex.Match(cellAddress.ToUpper(), @"[A-Z]+").Value;
+            uint rowIndex = uint.Parse(Regex.Match(cellAddress, @"[0-9]+").Value);
+            return GetOrCreateCell(worksheet, columnName, rowIndex);
         }
+
+        /// <summary>
+        /// Получить или создать ячейку правее указанного местоположения.
+        /// </summary>
+        /// <param name="worksheet"></param>
+        /// <param name="columnName"></param>
+        /// <param name="rowIndex"></param>
+        /// <returns></returns>
+        public Cell GetOrCreateRightCell(Worksheet worksheet, string columnName, uint rowIndex)
+        {
+            if (string.IsNullOrEmpty(columnName))
+            {
+                throw new ArgumentException($"'{nameof(columnName)}' не может быть null или пустым.", nameof(columnName));
+            }
+
+            string rigthCellColumnName = IncrementColumnAddress(columnName);
+            return GetOrCreateCell(worksheet, rigthCellColumnName, rowIndex);
+        }
+
+        /// <summary>
+        /// Получить или создать ячейку правее указанного адреса ячейки.
+        /// </summary>
+        /// <param name="worksheet"></param>
+        /// <param name="cellAddress"></param>
+        /// <returns></returns>
+        public Cell GetOrCreateRightCell(Worksheet worksheet, string cellAddress)
+        {
+            if (string.IsNullOrWhiteSpace(cellAddress))
+            {
+                throw new ArgumentException($"'{nameof(cellAddress)}' не может быть null или пустым.", nameof(cellAddress));
+            }
+
+            string columnName = Regex.Match(cellAddress.ToUpper(), @"[A-Z]+").Value;
+            uint rowIndex = uint.Parse(Regex.Match(cellAddress, @"[0-9]+").Value);
+            return GetOrCreateRightCell(worksheet, columnName, rowIndex);
+        }
+
+        /// <summary>
+        /// Получить или создать ячейку правее указанной ячейки.
+        /// </summary>
+        /// <param name="worksheet"></param>
+        /// <param name="cell"></param>
+        /// <returns></returns>
+        public Cell GetOrCreateRightCell(Worksheet worksheet, Cell cell)
+        {
+            if (worksheet is null)
+            {
+                throw new ArgumentNullException(nameof(worksheet));
+            }
+
+            if (cell is null)
+            {
+                throw new ArgumentNullException(nameof(cell));
+            }
+
+            string currentCellAddress = cell.CellReference;
+            string columnName = Regex.Match(currentCellAddress.ToUpper(), @"[A-Z]+").Value;
+            uint rowIndex = uint.Parse(Regex.Match(currentCellAddress, @"[0-9]+").Value);
+            string rigthCellColumnName = IncrementColumnAddress(columnName);
+            return GetOrCreateCell(worksheet, rigthCellColumnName, rowIndex);
+        }
+
+        #endregion
 
         #region Set cell value
 
         /// <summary>
-        /// Set cell text value.
+        /// Установить текстовое значение в ячейку.
         /// </summary>
         /// <param name="cell"></param>
         /// <param name="text"></param>
         /// <param name="dataType"></param>
         public void SetCellValue(Cell cell, string text, CellValues dataType = CellValues.String)
         {
+            if (cell is null)
+            {
+                throw new ArgumentNullException(nameof(cell));
+            }
+
             cell.CellValue = new CellValue(text);
             cell.DataType = new EnumValue<CellValues>(dataType);
         }
 
         /// <summary>
-        /// Set cell date time value.
+        /// Установить значение даты/время в ячейку.
         /// </summary>
         /// <param name="cell"></param>
         /// <param name="dateTime"></param>
         /// <param name="dataType"></param>
         public void SetCellValue(Cell cell, DateTime dateTime, CellValues dataType = CellValues.Date)
         {
+            if (cell is null)
+            {
+                throw new ArgumentNullException(nameof(cell));
+            }
+
             cell.CellValue = new CellValue(dateTime);
             cell.DataType = new EnumValue<CellValues>(dataType);
         }
 
         /// <summary>
-        /// Set cell date time offset value.
+        /// Установить значение момента времени в ячейку.
         /// </summary>
         /// <param name="cell"></param>
         /// <param name="dateTimeOffset"></param>
         /// <param name="dataType"></param>
         public void SetCellValue(Cell cell, DateTimeOffset dateTimeOffset, CellValues dataType = CellValues.Date)
         {
+            if (cell is null)
+            {
+                throw new ArgumentNullException(nameof(cell));
+            }
+
             cell.CellValue = new CellValue(dateTimeOffset);
             cell.DataType = new EnumValue<CellValues>(dataType);
         }
 
         /// <summary>
-        /// Set cell boolean value.
+        /// Установить булевое (да/нет, 1/0) значение в ячейку.
         /// </summary>
         /// <param name="cell"></param>
         /// <param name="value"></param>
         /// <param name="dataType"></param>
         public void SetCellValue(Cell cell, bool value, CellValues dataType = CellValues.Boolean)
         {
+            if (cell is null)
+            {
+                throw new ArgumentNullException(nameof(cell));
+            }
+
             cell.CellValue = new CellValue(value);
             cell.DataType = new EnumValue<CellValues>(dataType);
         }
 
         /// <summary>
-        /// Set cell double value.
+        /// Установить число двойной точности с плавающей запятой (10.5) в ячейку.
         /// </summary>
         /// <param name="cell"></param>
         /// <param name="value"></param>
         /// <param name="dataType"></param>
         public void SetCellValue(Cell cell, double value, CellValues dataType = CellValues.Number)
         {
+            if (cell is null)
+            {
+                throw new ArgumentNullException(nameof(cell));
+            }
+
             cell.CellValue = new CellValue(value);
             cell.DataType = new EnumValue<CellValues>(dataType);
         }
 
         /// <summary>
-        /// Set cell integer value.
+        /// Установить целочисленное (10) значение в ячейку.
         /// </summary>
         /// <param name="cell"></param>
         /// <param name="value"></param>
         /// <param name="dataType"></param>
         public void SetCellValue(Cell cell, int value, CellValues dataType = CellValues.Number)
         {
+            if (cell is null)
+            {
+                throw new ArgumentNullException(nameof(cell));
+            }
+
             cell.CellValue = new CellValue(value);
             cell.DataType = new EnumValue<CellValues>(dataType);
         }
 
         /// <summary>
-        /// Set cell decimal value.
+        /// Установить значение десятичного числа с плавающей запятой в ячейку.
         /// </summary>
         /// <param name="cell"></param>
         /// <param name="value"></param>
         /// <param name="dataType"></param>
         public void SetCellValue(Cell cell, decimal value, CellValues dataType = CellValues.Number)
         {
+            if (cell is null)
+            {
+                throw new ArgumentNullException(nameof(cell));
+            }
+
             cell.CellValue = new CellValue(value);
             cell.DataType = new EnumValue<CellValues>(dataType);
         }
 
         #endregion
 
+        /// <summary>
+        /// Инкремент (увеличение на 1) адреса столбца (A -> B, Z -> AA).
+        /// </summary>
+        /// <param name="columnAddress"></param>
+        /// <returns></returns>
+        public static string IncrementColumnAddress(string columnAddress)
+        {
+            if (string.IsNullOrWhiteSpace(columnAddress))
+            {
+                throw new ArgumentException($"'{nameof(columnAddress)}' не может быть null или состоять из пробелов.", nameof(columnAddress));
+            }
 
+            string normalizedAddres = Regex.Match(columnAddress.ToUpper(), @"[A-Z]+").Value;
+            int normalizedNumber = ColumnNameToNumber(normalizedAddres);
+            return ColumnNumberToName(++normalizedNumber);
+        }
+
+        /// <summary>
+        /// Адрес столбца в номер.
+        /// </summary>
+        /// <param name="columnName"></param>
+        /// <returns></returns>
+        private static int ColumnNameToNumber(string columnName)
+        {
+            if (string.IsNullOrWhiteSpace(columnName))
+            {
+                throw new ArgumentException($"'{nameof(columnName)}' не может быть null или состоять из пробелов.", nameof(columnName));
+            }
+
+            int result = 0;
+
+            for (int i = 0; i < columnName.Length; i++)
+            {
+                result *= 26;
+                char letter = columnName[i];
+
+                if (letter < 'A') letter = 'A';
+                if (letter > 'Z') letter = 'Z';
+
+                result += letter - 'A' + 1;
+            }
+            return result;
+        }
+        
+        /// <summary>
+        /// Номер в адрес столбца.
+        /// </summary>
+        /// <param name="columnNumber"></param>
+        /// <returns></returns>
+        private static string ColumnNumberToName(int columnNumber)
+        {
+            if (columnNumber < 1) return "A";
+
+            string result = "";
+            while (columnNumber > 0)
+            {
+                columnNumber--;
+                int digit = columnNumber % 26;
+
+                result = (char)(digit + 'A') + result;
+
+                columnNumber /= 26;
+            }
+
+            return result;
+        }
 
         /// <summary>
         /// Сохранение и зыкрытие документа.
