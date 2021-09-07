@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
@@ -9,7 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="MailKit" Version="2.9.0" />
+      <PackageReference Include="MailKit" Version="2.15.0" />
     </ItemGroup>
 
     <ItemGroup>
