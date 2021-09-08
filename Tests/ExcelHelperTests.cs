@@ -8,19 +8,37 @@ namespace Tests
 {
     public class ExcelHelperTests
     {
+        private const string path = "test.xlsx";
+
+        ExcelHelper excel = null;
+
         [SetUp]
         public void Setup()
         {
-            if (File.Exists("test.xlsx"))
+            if (File.Exists(path))
             {
-                File.Delete("test.xlsx");
+                File.Delete(path);
+            }
+        }
+
+        [TearDown]
+        public void Cleanup()
+        {
+            if (excel != null)
+            {
+                excel.Dispose();
+                excel = null;
+            }
+            if (File.Exists(path))
+            {
+                File.Delete(path);
             }
         }
 
         [Test]
         public void GetCreateTest1()
         {
-            ExcelHelper excel = new ExcelHelper("test.xlsx");
+            excel = new ExcelHelper(path);
 
             var worksheet = excel.GetOrCreateWorksheet("test");
 
@@ -30,17 +48,13 @@ namespace Tests
 
             Assert.AreEqual(cell1, cell2);
 
-            excel.Close();
-
-            File.Delete("test.xlsx");
-
             Assert.Pass();
         }
 
         [Test]
         public void GetCreateTest2()
         {
-            ExcelHelper excel = new ExcelHelper("test.xlsx");
+            excel = new ExcelHelper(path);
 
             var worksheet = excel.GetOrCreateWorksheet("test");
 
@@ -54,7 +68,7 @@ namespace Tests
             excel.SetCellValue(cell2, 1, CellValues.String);
             cell2 = excel.GetOrCreateCell(worksheet, "A", 1);
 
-            Assert.AreEqual(cell1.CellValue.Text, cell2.CellValue.Text);
+            Assert.AreEqual(excel.GetCellStringValue(cell1), excel.GetCellStringValue(cell2));
 
             // 2. Number
 
@@ -64,13 +78,9 @@ namespace Tests
             excel.SetCellValue(cell2, "1", CellValues.Number);
             cell2 = excel.GetOrCreateCell(worksheet, "A", 1);
 
-            Assert.AreEqual(cell1.CellValue.Text, cell2.CellValue.Text);
+            Assert.AreEqual(excel.GetCellStringValue(cell1), excel.GetCellStringValue(cell2));
 
             //
-
-            excel.Close();
-
-            File.Delete("test.xlsx");
 
             Assert.Pass();
         }
@@ -108,7 +118,7 @@ namespace Tests
                 { "ZZZZZZ1", "AAAAAAA1" }
             };
 
-            ExcelHelper excel = new ExcelHelper("test.xlsx");
+            excel = new ExcelHelper(path);
             var worksheet = excel.GetOrCreateWorksheet("test");
 
             foreach (var item in samples)
@@ -118,10 +128,6 @@ namespace Tests
                 Assert.AreEqual(item.Value, (string)rigthCell.CellReference);
             }
 
-            excel.Close();
-
-            File.Delete("test.xlsx");
-
             Assert.Pass();
         }
 
@@ -130,7 +136,7 @@ namespace Tests
         {
             string testString = "I'm Gennadius!";
 
-            ExcelHelper excel = new ExcelHelper("test.xlsx");
+            excel = new ExcelHelper(path);
 
             var worksheet = excel.GetOrCreateWorksheet("test");
 
@@ -143,10 +149,6 @@ namespace Tests
 
             Assert.AreEqual(originCell, foundCell);
 
-            excel.Close();
-
-            File.Delete("test.xlsx");
-
             Assert.Pass();
         }
 
@@ -155,17 +157,13 @@ namespace Tests
         {
             string worksheetNameTest = "test";
 
-            ExcelHelper excel = new ExcelHelper("test.xlsx");
+            excel = new ExcelHelper(path);
 
             var worksheet = excel.GetOrCreateWorksheet(worksheetNameTest);
 
             string worksheetName = excel.GetWorksheetName(worksheet);
 
             Assert.AreEqual(worksheetName, worksheetNameTest);
-
-            excel.Close();
-
-            File.Delete("test.xlsx");
 
             Assert.Pass();
         }

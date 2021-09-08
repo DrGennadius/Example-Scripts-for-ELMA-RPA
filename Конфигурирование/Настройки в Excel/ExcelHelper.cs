@@ -235,6 +235,27 @@ namespace ELMA.RPA.Scripts
 
             return row;
         }
+        
+        /// <summary>
+        /// Получить текстового значение ячейки.
+        /// </summary>
+        /// <param name="cell"></param>
+        /// <returns></returns>
+        public string GetCellStringValue(Cell cell)
+        {
+            if (cell is null)
+            {
+                return "";
+            }
+
+            string result = cell.CellValue.Text;
+            if (cell.DataType.HasValue && cell.DataType.Value == CellValues.SharedString)
+            {
+                var stringTable = Workbook.WorkbookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
+                result = stringTable.SharedStringTable.ElementAt(int.Parse(result)).InnerText;
+            }
+            return result;
+        }
 
         #region Get cell
 
@@ -569,7 +590,7 @@ namespace ELMA.RPA.Scripts
 
                 foreach (var celli in cells)
                 {
-                    if(celli.CellValue.Text == searchText)
+                    if(GetCellStringValue(celli) == searchText)
                     {
                         cell = celli;
                         break;

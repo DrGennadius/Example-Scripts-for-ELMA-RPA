@@ -9,85 +9,37 @@ namespace ELMA.RPA.Scripts
     /// <summary>
     public class Context
     {
-        // <value>StringParam</value>
-        public String stringparam
+        /// <summary>
+        /// Путь к файлу конфигурации.
+        /// </summary>
+        public String ConfigFilePath
         {
             get;
             set;
         }
 
-        // <value>FileParam</value>
-        public FileInfo fileparam
+        /// <summary>
+        /// Параметр 1 из листа 1.
+        /// </summary>
+        public String StringParam1s1
         {
             get;
             set;
         }
 
-        // <value>DateTimeParam</value>
-        public Nullable<DateTime> datetimeparam
+        /// <summary>
+        /// Параметр 1 из листа 2.
+        /// </summary>
+        public String StringParam2s1
         {
             get;
             set;
         }
 
-        // <value>BooleanParam</value>
-        public Nullable<Boolean> booleanparam
-        {
-            get;
-            set;
-        }
-
-        // <value>DoubleParam</value>
-        public Nullable<Double> doubleparam
-        {
-            get;
-            set;
-        }
-
-        // <value>integerparam</value>
-        public Nullable<Int64> integerparam
-        {
-            get;
-            set;
-        }
-
-        // <value>StringList</value>
-        public List<String> stringlist
-        {
-            get;
-            set;
-        }
-
-        // <value>FileList</value>
-        public List<FileInfo> filelist
-        {
-            get;
-            set;
-        }
-
-        // <value>DateTimeList</value>
-        public List<Nullable<DateTime>> datetimelist
-        {
-            get;
-            set;
-        }
-
-        // <value>BooleanList</value>
-        public List<Nullable<Boolean>> booleanlist
-        {
-            get;
-            set;
-        }
-
-        // <value>DoubleList</value>
-        public List<Nullable<Double>> doublelist
-        {
-            get;
-            set;
-        }
-
-        // <value>IntegerList</value>
-        public List<Nullable<Int64>> integerlist
+        /// <summary>
+        /// Параметр 2 из листа 2.
+        /// </summary>
+        public String StringParam2s2
         {
             get;
             set;

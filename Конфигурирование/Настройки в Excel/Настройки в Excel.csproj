@@ -14,4 +14,10 @@
         <PackageReference Include="System.Text.Encoding.CodePages" Version="5.0.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Update="Пример.xlsx">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
 </Project>

@@ -55,7 +55,7 @@ namespace ELMA.RPA.Scripts
                 foreach (var leftCell in leftCells)
                 {
                     var rigthCell = ExcelHelper.GetOrCreateRightCell(worksheet, leftCell);
-                    subParams.Add(leftCell.CellValue.Text, rigthCell.CellValue.Text);
+                    subParams.Add(ExcelHelper.GetCellStringValue(leftCell), ExcelHelper.GetCellStringValue(rigthCell));
                 }
                 string worksheetName = ExcelHelper.GetWorksheetName(worksheet);
                 Params.Add(worksheetName, subParams);
