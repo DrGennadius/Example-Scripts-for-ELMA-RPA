@@ -6,7 +6,7 @@ using System.IO;
 
 namespace Tests
 {
-    public class Tests
+    public class ExcelHelperTests
     {
         [SetUp]
         public void Setup()
@@ -119,6 +119,53 @@ namespace Tests
             }
 
             excel.Close();
+
+            File.Delete("test.xlsx");
+
+            Assert.Pass();
+        }
+
+        [Test]
+        public void FindCellByTextTest()
+        {
+            string testString = "I'm Gennadius!";
+
+            ExcelHelper excel = new ExcelHelper("test.xlsx");
+
+            var worksheet = excel.GetOrCreateWorksheet("test");
+
+            var originCell = excel.GetOrCreateCell(worksheet, "GENNADY45");
+            excel.SetCellValue(originCell, testString);
+
+            var foundCell = excel.FindCellByText(worksheet, testString);
+
+            Assert.IsNotNull(foundCell);
+
+            Assert.AreEqual(originCell, foundCell);
+
+            excel.Close();
+
+            File.Delete("test.xlsx");
+
+            Assert.Pass();
+        }
+
+        [Test]
+        public void GetWorksheetNameTest()
+        {
+            string worksheetNameTest = "test";
+
+            ExcelHelper excel = new ExcelHelper("test.xlsx");
+
+            var worksheet = excel.GetOrCreateWorksheet(worksheetNameTest);
+
+            string worksheetName = excel.GetWorksheetName(worksheet);
+
+            Assert.AreEqual(worksheetName, worksheetNameTest);
+
+            excel.Close();
+
+            File.Delete("test.xlsx");
 
             Assert.Pass();
         }

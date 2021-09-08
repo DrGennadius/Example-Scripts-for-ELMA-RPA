@@ -90,6 +90,20 @@ namespace ELMA.RPA.Scripts
         }
 
         /// <summary>
+        /// Получить список листов.
+        /// </summary>
+        /// <returns></returns>
+        public IEnumerable<Worksheet> GetWorksheets()
+        {
+            if (Workbook is null)
+            {
+                throw new ArgumentNullException(nameof(Workbook));
+            }
+
+            return Workbook.WorkbookPart.GetPartsOfType<WorksheetPart>().Select(x => x.Worksheet);
+        }
+
+        /// <summary>
         /// Получить или создать лист с наименованием.
         /// </summary>
         /// <param name="worksheetName"></param>
@@ -141,12 +155,35 @@ namespace ELMA.RPA.Scripts
         }
 
         /// <summary>
-        /// Получить и создать строку.
+        /// Получить наименование листа.
+        /// </summary>
+        /// <param name="worksheet"></param>
+        /// <returns></returns>
+        public string GetWorksheetName(Worksheet worksheet)
+        {
+            if (worksheet is null)
+            {
+                throw new ArgumentNullException(nameof(worksheet));
+            }
+
+            string worksheetName = null;
+            string relationshipId = Workbook.WorkbookPart.GetIdOfPart(worksheet.WorksheetPart);
+            Sheets sheets = Workbook.GetFirstChild<Sheets>();
+            Sheet sheet = sheets.Elements<Sheet>().FirstOrDefault(x => x.Id == relationshipId);
+            if (sheet != null)
+            {
+                worksheetName = sheet.Name;
+            }
+            return worksheetName;
+        }
+
+        /// <summary>
+        /// Получить строку.
         /// </summary>
         /// <param name="worksheet"></param>
         /// <param name="rowIndex"></param>
         /// <returns></returns>
-        public Row GetOrCreateRow(Worksheet worksheet, uint rowIndex)
+        public Row GetRow(Worksheet worksheet, uint rowIndex)
         {
             if (worksheet is null)
             {
@@ -154,29 +191,61 @@ namespace ELMA.RPA.Scripts
             }
 
             SheetData sheetData = worksheet.GetFirstChild<SheetData>();
-            Row row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex == rowIndex);
-            if (row == null)
+            return sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex == rowIndex);
+        }
+
+        /// <summary>
+        /// Создать строку.
+        /// </summary>
+        /// <param name="worksheet"></param>
+        /// <param name="rowIndex"></param>
+        /// <returns></returns>
+        public Row CreateRow(Worksheet worksheet, uint rowIndex)
+        {
+            if (worksheet is null)
             {
-                Row nextRow = sheetData.Elements<Row>().OrderBy(r => r.RowIndex).FirstOrDefault(r => r.RowIndex > rowIndex);
-                row = new Row() 
-                {
-                    RowIndex = rowIndex
-                };
-                sheetData.InsertBefore(row, nextRow);
+                throw new ArgumentNullException(nameof(worksheet));
             }
+
+            SheetData sheetData = worksheet.GetFirstChild<SheetData>();
+            Row nextRow = sheetData.Elements<Row>().OrderBy(r => r.RowIndex).FirstOrDefault(r => r.RowIndex > rowIndex);
+            Row row = new Row()
+            {
+                RowIndex = rowIndex
+            };
+            sheetData.InsertBefore(row, nextRow);
+
             return row;
         }
 
-        #region Get cell value
+        /// <summary>
+        /// Получить или создать строку.
+        /// </summary>
+        /// <param name="worksheet"></param>
+        /// <param name="rowIndex"></param>
+        /// <returns></returns>
+        public Row GetOrCreateRow(Worksheet worksheet, uint rowIndex)
+        {
+            Row row = GetRow(worksheet, rowIndex);
+
+            if (row == null)
+            {
+                row = CreateRow(worksheet, rowIndex);
+            }
+
+            return row;
+        }
+
+        #region Get cell
 
         /// <summary>
-        /// Получить и создать строку.
+        /// Получить ячейку.
         /// </summary>
         /// <param name="worksheet"></param>
         /// <param name="columnName"></param>
         /// <param name="row"></param>
         /// <returns></returns>
-        public Cell GetOrCreateCell(Worksheet worksheet, string columnName, Row row)
+        public Cell GetCell(Worksheet worksheet, string columnName, Row row)
         {
             if (worksheet is null)
             {
@@ -194,30 +263,170 @@ namespace ELMA.RPA.Scripts
             }
 
             string cellReference = columnName + row.RowIndex;
-            Cell cell = row.Elements<Cell>().FirstOrDefault(c => c.CellReference.Value == cellReference);
-            
-            if (cell == null)
+            return row.Elements<Cell>().FirstOrDefault(c => c.CellReference.Value == cellReference);
+        }
+
+        /// <summary>
+        /// Получить ячейку.
+        /// </summary>
+        /// <param name="worksheet"></param>
+        /// <param name="columnName"></param>
+        /// <param name="rowIndex"></param>
+        /// <returns></returns>
+        public Cell GetCell(Worksheet worksheet, string columnName, uint rowIndex)
+        {
+            if (worksheet is null)
             {
-                Cell refCell = null;
-                foreach (Cell celli in row.Elements<Cell>())
+                throw new ArgumentNullException(nameof(worksheet));
+            }
+
+            if (string.IsNullOrEmpty(columnName))
+            {
+                throw new ArgumentException($"'{nameof(columnName)}' не может быть null или пустым.", nameof(columnName));
+            }
+
+            Cell cell = null;
+
+            Row row = GetRow(worksheet, rowIndex);
+
+            if (row != null)
+            {
+                cell = GetCell(worksheet, columnName, row);
+            }
+
+            return cell;
+        }
+
+        /// <summary>
+        /// Получить ячейку.
+        /// </summary>
+        /// <param name="worksheet"></param>
+        /// <param name="cellAddress"></param>
+        /// <returns></returns>
+        public Cell GetCell(Worksheet worksheet, string cellAddress)
+        {
+            if (worksheet is null)
+            {
+                throw new ArgumentNullException(nameof(worksheet));
+            }
+
+            if (string.IsNullOrEmpty(cellAddress))
+            {
+                throw new ArgumentException($"'{nameof(cellAddress)}' не может быть null или пустым.", nameof(cellAddress));
+            }
+
+            string columnName = Regex.Match(cellAddress.ToUpper(), @"[A-Z]+").Value;
+            uint rowIndex = uint.Parse(Regex.Match(cellAddress, @"[0-9]+").Value);
+            return GetCell(worksheet, columnName, rowIndex);
+        }
+
+        /// <summary>
+        /// Получить не пустые ячейки до конца столбца.
+        /// </summary>
+        /// <param name="worksheet"></param>
+        /// <param name="columnName"></param>
+        /// <param name="rowIndex"></param>
+        /// <returns></returns>
+        public IEnumerable<Cell> GetNotEmptyCellsToEndColumn(Worksheet worksheet, string columnName, uint rowIndex)
+        {
+            if (worksheet is null)
+            {
+                throw new ArgumentNullException(nameof(worksheet));
+            }
+
+            if (string.IsNullOrEmpty(columnName))
+            {
+                throw new ArgumentException($"'{nameof(columnName)}' не может быть null или пустым.", nameof(columnName));
+            }
+
+            List<Cell> cells = new List<Cell>();
+            Cell cell = null;
+            do
+            {
+                cell = GetCell(worksheet, columnName, rowIndex);
+                if (cell != null && (cell.CellValue == null || string.IsNullOrWhiteSpace(cell.CellValue.Text)))
                 {
-                    if (celli.CellReference.Value.Length == cellReference.Length)
+                    cell = null;
+                }
+                if (cell != null)
+                {
+                    cells.Add(cell);
+                }
+                rowIndex++;
+            } while (cell != null);
+
+            return cells;
+        }
+
+        #endregion
+
+        #region Create cell
+
+        /// <summary>
+        /// Создать ячейку.
+        /// </summary>
+        /// <param name="worksheet"></param>
+        /// <param name="columnName"></param>
+        /// <param name="row"></param>
+        /// <returns></returns>
+        public Cell CreateCell(Worksheet worksheet, string columnName, Row row)
+        {
+            if (worksheet is null)
+            {
+                throw new ArgumentNullException(nameof(worksheet));
+            }
+
+            if (string.IsNullOrEmpty(columnName))
+            {
+                throw new ArgumentException($"'{nameof(columnName)}' не может быть null или пустым.", nameof(columnName));
+            }
+
+            if (row is null)
+            {
+                throw new ArgumentNullException(nameof(row));
+            }
+
+            string cellReference = columnName + row.RowIndex;
+            Cell refCell = null;
+            foreach (Cell celli in row.Elements<Cell>())
+            {
+                if (celli.CellReference.Value.Length == cellReference.Length)
+                {
+                    if (string.Compare(celli.CellReference.Value, cellReference, true) > 0)
                     {
-                        if (string.Compare(celli.CellReference.Value, cellReference, true) > 0)
-                        {
-                            refCell = celli;
-                            break;
-                        }
+                        refCell = celli;
+                        break;
                     }
                 }
+            }
 
-                cell = new Cell()
-                {
-                    CellReference = cellReference
-                };
-                row.InsertBefore(cell, refCell);
+            Cell cell = new Cell()
+            {
+                CellReference = cellReference
+            };
+            row.InsertBefore(cell, refCell);
 
-                // worksheet.Save();
+            return cell;
+        }
+
+        #endregion
+
+        #region Get or create cell
+
+        /// <summary>
+        /// Получить и создать ячейку.
+        /// </summary>
+        /// <param name="worksheet"></param>
+        /// <param name="columnName"></param>
+        /// <param name="row"></param>
+        /// <returns></returns>
+        public Cell GetOrCreateCell(Worksheet worksheet, string columnName, Row row)
+        {
+            Cell cell = GetCell(worksheet, columnName, row);
+
+            if (cell == null)
+            {
+                cell = CreateCell(worksheet, columnName, row);
             }
 
             return cell;
@@ -331,6 +540,45 @@ namespace ELMA.RPA.Scripts
         }
 
         #endregion
+
+        /// <summary>
+        /// Найти ячейку по тексту.
+        /// </summary>
+        /// <param name="worksheet"></param>
+        /// <param name="searchText"></param>
+        /// <returns></returns>
+        public Cell FindCellByText(Worksheet worksheet, string searchText)
+        {
+            if (worksheet is null)
+            {
+                throw new ArgumentNullException(nameof(worksheet));
+            }
+
+            if (string.IsNullOrEmpty(searchText))
+            {
+                throw new ArgumentException($"'{nameof(searchText)}' не может быть null или пустым.", nameof(searchText));
+            }
+
+            Cell cell = null;
+
+            var rows = worksheet.Descendants<Row>().ToList();
+
+            foreach (var row in rows)
+            {
+                var cells = row.Elements<Cell>().ToList();
+
+                foreach (var celli in cells)
+                {
+                    if(celli.CellValue.Text == searchText)
+                    {
+                        cell = celli;
+                        break;
+                    }
+                }
+            }
+
+            return cell;
+        }
 
         #region Set cell value
 
@@ -520,6 +768,14 @@ namespace ELMA.RPA.Scripts
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Сохранить документ.
+        /// </summary>
+        public void Save()
+        {
+            Document.Save();
         }
 
         /// <summary>
