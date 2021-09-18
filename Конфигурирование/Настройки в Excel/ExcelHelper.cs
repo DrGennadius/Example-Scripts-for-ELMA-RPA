@@ -249,7 +249,7 @@ namespace ELMA.RPA.Scripts
             }
 
             string result = cell.CellValue.Text;
-            if (cell.DataType.HasValue && cell.DataType.Value == CellValues.SharedString)
+            if (cell.DataType != null && cell.DataType.HasValue && cell.DataType == CellValues.SharedString)
             {
                 var stringTable = Workbook.WorkbookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
                 result = stringTable.SharedStringTable.ElementAt(int.Parse(result)).InnerText;
@@ -428,6 +428,31 @@ namespace ELMA.RPA.Scripts
             row.InsertBefore(cell, refCell);
 
             return cell;
+        }
+
+        /// <summary>
+        /// Получить ячейку правее указанной ячейки.
+        /// </summary>
+        /// <param name="worksheet"></param>
+        /// <param name="cell"></param>
+        /// <returns></returns>
+        public Cell GetRightCell(Worksheet worksheet, Cell cell)
+        {
+            if (worksheet is null)
+            {
+                throw new ArgumentNullException(nameof(worksheet));
+            }
+
+            if (cell is null)
+            {
+                throw new ArgumentNullException(nameof(cell));
+            }
+
+            string currentCellAddress = cell.CellReference;
+            string columnName = Regex.Match(currentCellAddress.ToUpper(), @"[A-Z]+").Value;
+            uint rowIndex = uint.Parse(Regex.Match(currentCellAddress, @"[0-9]+").Value);
+            string rigthCellColumnName = IncrementColumnAddress(columnName);
+            return GetCell(worksheet, rigthCellColumnName, rowIndex);
         }
 
         #endregion
@@ -813,6 +838,7 @@ namespace ELMA.RPA.Scripts
         public void Dispose()
         {
             Close();
+            GC.SuppressFinalize(this);
         }
     }
 }

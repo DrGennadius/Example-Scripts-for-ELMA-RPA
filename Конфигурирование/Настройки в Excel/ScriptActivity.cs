@@ -18,9 +18,10 @@ namespace ELMA.RPA.Scripts
         {
             ExcelConfigurationManager configurationManager = new ExcelConfigurationManager(context.ConfigFilePath);
             configurationManager.Read();
-            context.StringParam1s1 = configurationManager.Params["Лист1"]["Параметр 1"];
-            context.StringParam2s1 = configurationManager.Params["Лист2"]["Параметр 2.1"];
-            context.StringParam2s2 = configurationManager.Params["Лист2"]["Параметр 2.2"];
+            context.StringParam1s1 = configurationManager.SingleParams["Лист1"]["Параметр 1"];
+            context.StringParam2s1 = configurationManager.SingleParams["Лист2"]["Параметр 2.1"];
+            context.StringParam2s2 = configurationManager.SingleParams["Лист2"]["Параметр 2.2"];
+            context.StringListParam = configurationManager.MultipleParams["Лист3"]["Список"].ToList();
         }
     }
 }

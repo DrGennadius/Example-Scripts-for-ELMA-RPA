@@ -20,6 +20,7 @@ namespace ELMA.RPA.Scripts
             Console.WriteLine($"Лист 1 параметр 1 = '{context.StringParam1s1}'");
             Console.WriteLine($"Лист 2 параметр 1 = '{context.StringParam2s1}'");
             Console.WriteLine($"Лист 2 параметр 2 = '{context.StringParam2s2}'");
+            Console.WriteLine($"Лист 3 множественный параметр = '{string.Join(", ", context.StringListParam)}'");
 
             Console.ReadKey();
         }

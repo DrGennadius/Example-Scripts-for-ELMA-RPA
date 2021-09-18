@@ -44,5 +44,14 @@ namespace ELMA.RPA.Scripts
             get;
             set;
         }
+
+        /// <summary>
+        /// Параметр списка строк.
+        /// </summary>
+        public List<String> StringListParam
+        {
+            get;
+            set;
+        }
     }
 }
