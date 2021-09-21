@@ -82,7 +82,7 @@ namespace Tests
             // Множественый параметр.
             for (int i = 1; i <= multTestCount; i++)
             {
-                Dictionary<string, IEnumerable<string>> keyValues = new();
+                Dictionary<string, List<string>> keyValues = new();
                 for (int j = 1; j <= multTestCount; j++)
                 {
                     List<string> values = new();
