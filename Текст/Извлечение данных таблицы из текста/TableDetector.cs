@@ -35,15 +35,15 @@ namespace ELMA.RPA.Scripts
                 return tableParameters;
             }
 
-            int beginIndex = DetectFirstCharIndex(ref text);
+            int beginIndex = DetectFirstCharIndex(text);
             if (beginIndex == -1)
             {
                 return tableParameters;
             }
 
             int currentIndex = beginIndex;
-            var beginColumnIndexes = DetectBeginColumnIndexes(ref text, ref currentIndex);
-            int endIndex = PassToEndTable(ref text, ref currentIndex, ref beginColumnIndexes);
+            var beginColumnIndexes = DetectBeginColumnIndexes(text, ref currentIndex);
+            int endIndex = PassToEndTable(text, ref currentIndex, beginColumnIndexes);
 
             tableParameters = new TableParameters(beginIndex, endIndex, beginColumnIndexes);
 
@@ -56,7 +56,7 @@ namespace ELMA.RPA.Scripts
         /// <param name="text"></param>
         /// <param name="lastIndex"></param>
         /// <returns></returns>
-        public int LastTableRowIndex(ref string text, int lastIndex)
+        public int LastTableRowIndex(string text, int lastIndex)
         {
             int newLineLength = Environment.NewLine.Length;
             string[] rows = text.Split(Environment.NewLine);
@@ -64,6 +64,9 @@ namespace ELMA.RPA.Scripts
             int i = 0;
             for (; i < rows.Length; i++)
             {
+#if DEBUG
+                string debugRow = rows[i];
+#endif
                 int tempIndex = index + rows[i].Length;
                 if (tempIndex >= lastIndex)
                 {
@@ -71,7 +74,7 @@ namespace ELMA.RPA.Scripts
                 }
                 index = tempIndex + newLineLength;
             }
-            return i;
+            return i - 1;
         }
 
         /// <summary>
@@ -79,7 +82,7 @@ namespace ELMA.RPA.Scripts
         /// </summary>
         /// <param name="text"></param>
         /// <returns></returns>
-        private int DetectFirstCharIndex(ref string text)
+        private int DetectFirstCharIndex(string text)
         {
             if (!string.IsNullOrEmpty(_detectFeatures.FirstCellText))
             {
@@ -87,7 +90,7 @@ namespace ELMA.RPA.Scripts
             }
             else
             {
-                return DetectFirstCharIndexAuto(ref text);
+                return DetectFirstCharIndexAuto(text);
             }
         }
 
@@ -96,7 +99,7 @@ namespace ELMA.RPA.Scripts
         /// </summary>
         /// <param name="text"></param>
         /// <returns></returns>
-        private int DetectFirstCharIndexAuto(ref string text)
+        private int DetectFirstCharIndexAuto(string text)
         {
             if (string.IsNullOrEmpty(_detectFeatures.SplitPattern))
             {
@@ -124,7 +127,7 @@ namespace ELMA.RPA.Scripts
         /// <param name="text"></param>
         /// <param name="currentIndex"></param>
         /// <returns></returns>
-        private int[] DetectBeginColumnIndexes(ref string text, ref int currentIndex)
+        private int[] DetectBeginColumnIndexes(string text, ref int currentIndex)
         {
             int endLineIndex = text.IndexOf(Environment.NewLine, currentIndex);
             string subText = text[currentIndex..endLineIndex];
@@ -137,6 +140,11 @@ namespace ELMA.RPA.Scripts
             // Расчитываем стартовые индексы начала столбцов
             // ic = начальный индекс разделителя + длина разделителя
             int[] beginIndexes = splitMatches.Select(x => x.Index + x.Value.Length).ToArray();
+            // На всякий случай удалим последний, если там ничего нет.
+            if (beginIndexes[^1] == endLineIndex)
+            {
+                beginIndexes = beginIndexes.SkipLast(1).ToArray();
+            }
             // В самом начале еще вставляем самый первый индекс.
             return (new int[] { 0 }).Concat(beginIndexes).ToArray();
         }
@@ -148,31 +156,35 @@ namespace ELMA.RPA.Scripts
         /// <param name="currentIndex"></param>
         /// <param name="beginColumnIndexes"></param>
         /// <returns></returns>
-        private int PassToEndTable(ref string text, ref int currentIndex, ref int[] beginColumnIndexes)
+        private int PassToEndTable(string text, ref int currentIndex, int[] beginColumnIndexes)
         {
-            int endIndex = currentIndex;
 #if DEBUG
             char debugBeginChar = text[currentIndex];
 #endif
 
+            string textLine = "";
             while (currentIndex < text.Length)
             {
                 int endLineIndex = text.IndexOf(Environment.NewLine, currentIndex);
-                if (endLineIndex < 0)
+                if (endLineIndex >= 0)
+                {
+                    textLine = text[currentIndex..endLineIndex];
+                }
+                else
+                {
+                    // Берем последний символ, если не найден перенос.
+                    endLineIndex = text.Length - 1;
+                    textLine = text[currentIndex..];
+                }
+                if (!IsValidRow(textLine, beginColumnIndexes))
                 {
                     break;
                 }
-                string textLine = text[currentIndex..endLineIndex];
-                if (!IsValidRow(ref textLine, ref beginColumnIndexes))
-                {
-                    break;
-                }
-                endIndex = currentIndex;
                 // Устанавливаем следующий индекс начала следующим после конца этой строки.
                 currentIndex = endLineIndex + Environment.NewLine.Length;
             }
 
-            return endIndex;
+            return currentIndex;
         }
 
         /// <summary>
@@ -181,7 +193,7 @@ namespace ELMA.RPA.Scripts
         /// <param name="textLine"></param>
         /// <param name="beginColumnIndexes"></param>
         /// <returns></returns>
-        private bool IsValidRow(ref string textLine, ref int[] beginColumnIndexes)
+        private bool IsValidRow(string textLine, int[] beginColumnIndexes)
         {
             if (textLine == "")
             {
@@ -198,12 +210,12 @@ namespace ELMA.RPA.Scripts
                 return true;
             }
 
-            bool isValid = IsValidRowBase(ref textLine, ref beginColumnIndexes);
+            bool isValid = IsValidRowBase(textLine, beginColumnIndexes);
 
             if (isValid && _detectFeatures.HasStartSequentialNumberingCells)
             {
                 // Дополнительная проверка нумерации.
-                isValid = IsValidRowWithNumberingStart(ref textLine, ref beginColumnIndexes);
+                isValid = IsValidRowWithNumberingStart(textLine, beginColumnIndexes);
             }
 
             return isValid;
@@ -215,9 +227,13 @@ namespace ELMA.RPA.Scripts
         /// <param name="textLine"></param>
         /// <param name="beginColumnIndexes"></param>
         /// <returns></returns>
-        private bool IsValidRowBase(ref string textLine, ref int[] beginColumnIndexes)
+        private bool IsValidRowBase(string textLine, int[] beginColumnIndexes)
         {
             bool isValid = true;
+
+#if DEBUG
+            int debugTextLineLength = textLine.Length;
+#endif
 
             int beginIndex;
             int endIndex;
@@ -227,8 +243,8 @@ namespace ELMA.RPA.Scripts
                 // Будем как бы проверять предыдущий фрагмент текста (ячейку),
                 // которая находится перед индексом начала текущего фрагмента.
                 beginIndex = beginColumnIndexes[i - 1];
-                endIndex = beginColumnIndexes[i] - 1;
-                isValid = IsValidFragment(ref textLine, beginIndex, endIndex);
+                endIndex = beginColumnIndexes[i];
+                isValid = IsValidFragment(textLine, beginIndex, endIndex);
                 if (!isValid)
                 {
                     break;
@@ -239,14 +255,14 @@ namespace ELMA.RPA.Scripts
                 // Т.к. мы в цикле использовали предыдущий фрагмент,
                 // то сейчас остается последний, где конец - последний индекс строки.
                 beginIndex = beginColumnIndexes[^1];
-                endIndex = textLine.Length - 1;
-                isValid = IsValidFragment(ref textLine, beginIndex, endIndex);
+                endIndex = textLine.Length;
+                isValid = IsValidFragment(textLine, beginIndex, endIndex);
             }
 
             return isValid;
         }
 
-        private bool IsValidFragment(ref string textLine, int beginIndex, int endIndex)
+        private bool IsValidFragment(string textLine, int beginIndex, int endIndex)
         {
             if (beginIndex >= textLine.Length || endIndex >= textLine.Length)
             {
@@ -273,7 +289,7 @@ namespace ELMA.RPA.Scripts
         /// <param name="textLine"></param>
         /// <param name="beginColumnIndexes"></param>
         /// <returns></returns>
-        private bool IsValidRowWithNumberingStart(ref string textLine, ref int[] beginColumnIndexes)
+        private bool IsValidRowWithNumberingStart(string textLine, int[] beginColumnIndexes)
         {
             bool isValid = true;
 
