@@ -51,6 +51,30 @@ namespace ELMA.RPA.Scripts
         }
 
         /// <summary>
+        /// Получить индекс последней строки таблицы по последнему индексу.
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="lastIndex"></param>
+        /// <returns></returns>
+        public int LastTableRowIndex(ref string text, int lastIndex)
+        {
+            int newLineLength = Environment.NewLine.Length;
+            string[] rows = text.Split(Environment.NewLine);
+            int index = 0;
+            int i = 0;
+            for (; i < rows.Length; i++)
+            {
+                int tempIndex = index + rows[i].Length;
+                if (tempIndex >= lastIndex)
+                {
+                    break;
+                }
+                index = tempIndex + newLineLength;
+            }
+            return i;
+        }
+
+        /// <summary>
         /// Определение индекса первого символа.
         /// </summary>
         /// <param name="text"></param>
@@ -104,9 +128,17 @@ namespace ELMA.RPA.Scripts
         {
             int endLineIndex = text.IndexOf(Environment.NewLine, currentIndex);
             string subText = text[currentIndex..endLineIndex];
-            currentIndex = endLineIndex + 1;
-            var matches = Regex.Matches(subText, _detectFeatures.SplitPattern);
-            return matches.Select(x => x.Index).ToArray();
+            // Ищем разделители. Тут должно быть без пропусков по идее,
+            // т.к. это первая строка хидера таблицы,
+            // где должны быть наименования столбцов.
+            var splitMatches = Regex.Matches(subText, _detectFeatures.SplitPattern);
+            // Следующий текущий индекс это следующий символ после конца текущей строки.
+            currentIndex = endLineIndex + Environment.NewLine.Length;
+            // Расчитываем стартовые индексы начала столбцов
+            // ic = начальный индекс разделителя + длина разделителя
+            int[] beginIndexes = splitMatches.Select(x => x.Index + x.Value.Length).ToArray();
+            // В самом начале еще вставляем самый первый индекс.
+            return (new int[] { 0 }).Concat(beginIndexes).ToArray();
         }
 
         /// <summary>
@@ -119,8 +151,11 @@ namespace ELMA.RPA.Scripts
         private int PassToEndTable(ref string text, ref int currentIndex, ref int[] beginColumnIndexes)
         {
             int endIndex = currentIndex;
+#if DEBUG
+            char debugBeginChar = text[currentIndex];
+#endif
 
-            while (endIndex < text.Length)
+            while (currentIndex < text.Length)
             {
                 int endLineIndex = text.IndexOf(Environment.NewLine, currentIndex);
                 if (endLineIndex < 0)
@@ -132,6 +167,9 @@ namespace ELMA.RPA.Scripts
                 {
                     break;
                 }
+                endIndex = currentIndex;
+                // Устанавливаем следующий индекс начала следующим после конца этой строки.
+                currentIndex = endLineIndex + Environment.NewLine.Length;
             }
 
             return endIndex;
@@ -145,6 +183,12 @@ namespace ELMA.RPA.Scripts
         /// <returns></returns>
         private bool IsValidRow(ref string textLine, ref int[] beginColumnIndexes)
         {
+            if (textLine == "")
+            {
+                // Пропускаем.
+                // Дело в том, что у нас может быть текст, в котором есть пустые строки.
+                return true;
+            }
             if (string.IsNullOrWhiteSpace(textLine) || beginColumnIndexes.Length <= 0)
             {
                 return false;
@@ -200,7 +244,7 @@ namespace ELMA.RPA.Scripts
 
         private bool IsValidFragment(ref string textLine, int beginIndex, int endIndex)
         {
-            if (endIndex >= textLine.Length)
+            if (beginIndex >= textLine.Length || endIndex >= textLine.Length)
             {
                 // Предполагаем, что если уходим за пределы конца строки,
                 // то там просто пустые значения.
@@ -210,9 +254,9 @@ namespace ELMA.RPA.Scripts
             string subText = textLine[beginIndex..endIndex];
             // Проверяем на разрез. Не будем что-то усложнять/оптимизировать, будем следовать простой логике.
             // По идее фрагмент содержит то, что является частью значения и разделительные символы в конце.
-            // Т.е. должны получить 2 элемента, 2й должен быть пустым.
+            // Т.е. должны получить 2 элемента, 2й должен быть пустым или 1 элемент если в конце строки.
             var elements = Regex.Split(subText, _detectFeatures.SplitPattern);
-            if (!(elements.Length == 2 && string.IsNullOrWhiteSpace(elements[1])))
+            if (!((elements.Length == 2 && elements[1] == "") || (elements.Length == 1 && endIndex == textLine.Length - 1)))
             {
                 return false;
             }

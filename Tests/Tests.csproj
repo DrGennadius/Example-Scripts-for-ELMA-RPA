@@ -14,6 +14,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Конфигурирование\Настройки в Excel\Настройки в Excel.csproj" />
+    <ProjectReference Include="..\Текст\Извлечение данных таблицы из текста\Извлечение данных таблицы из текста.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Текст\Пример текста.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
