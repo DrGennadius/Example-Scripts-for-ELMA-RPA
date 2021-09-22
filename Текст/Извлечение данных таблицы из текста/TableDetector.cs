@@ -200,7 +200,11 @@ namespace ELMA.RPA.Scripts
 
             bool isValid = IsValidRowBase(ref textLine, ref beginColumnIndexes);
 
-            // TODO: Дополнительная проверка numbering.
+            if (isValid && _detectFeatures.HasStartSequentialNumberingCells)
+            {
+                // Дополнительная проверка нумерации.
+                isValid = IsValidRowWithNumberingStart(ref textLine, ref beginColumnIndexes);
+            }
 
             return isValid;
         }
@@ -261,6 +265,33 @@ namespace ELMA.RPA.Scripts
                 return false;
             }
             return true;
+        }
+
+        /// <summary>
+        /// Это валидная строка (проверка нумерации в первой ячейке)?
+        /// </summary>
+        /// <param name="textLine"></param>
+        /// <param name="beginColumnIndexes"></param>
+        /// <returns></returns>
+        private bool IsValidRowWithNumberingStart(ref string textLine, ref int[] beginColumnIndexes)
+        {
+            bool isValid = true;
+
+            if (beginColumnIndexes.Length == 0)
+            {
+                return false;
+            }
+
+            int beginIndex = beginColumnIndexes[0];
+            int endIndex = beginColumnIndexes.Length > 1 ? beginColumnIndexes[1] - 1 : textLine.Length - 1;
+
+            string subText = textLine[beginIndex..endIndex].Trim();
+            if (!string.IsNullOrWhiteSpace(subText))
+            {
+                isValid = int.TryParse(subText, out _);
+            }
+
+            return isValid;
         }
     }
 }

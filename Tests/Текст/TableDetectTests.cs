@@ -28,8 +28,30 @@ namespace Tests
                 HasStartSequentialNumberingCells = false,
                 SplitPattern = @"\s{2,}"
             };
-            TableDetector tableDetector1 = new(tableDetectFeatures1);
-            var tableParameters = tableDetector1.Detect(sampleText1);
+            TableDetectFeatures tableDetectFeatures2 = new()
+            {
+                FirstCellText = "№",
+                HasStartSequentialNumberingCells = true,
+                SplitPattern = @"\s{2,}"
+            };
+            var tableParameters1 = CommonTestBody(tableDetectFeatures1);
+            var tableParameters2 = CommonTestBody(tableDetectFeatures2);
+
+            Assert.AreEqual(tableParameters1.FirstCharIndex, tableParameters2.FirstCharIndex);
+            Assert.AreEqual(tableParameters1.LastCharIndex, tableParameters2.LastCharIndex);
+            Assert.AreEqual(tableParameters1.BeginColumnIndexes.Length, tableParameters2.BeginColumnIndexes.Length);
+            Assert.AreEqual(tableParameters1.BeginColumnIndexes[0], tableParameters2.BeginColumnIndexes[0]);
+            Assert.AreEqual(tableParameters1.BeginColumnIndexes[1], tableParameters2.BeginColumnIndexes[1]);
+            Assert.AreEqual(tableParameters1.BeginColumnIndexes[2], tableParameters2.BeginColumnIndexes[2]);
+            Assert.AreEqual(tableParameters1.BeginColumnIndexes[3], tableParameters2.BeginColumnIndexes[3]);
+
+            Assert.Pass();
+        }
+
+        private TableParameters CommonTestBody(TableDetectFeatures tableDetectFeatures)
+        {
+            TableDetector tableDetector = new(tableDetectFeatures);
+            var tableParameters = tableDetector.Detect(sampleText1);
 
             Assert.IsTrue(tableParameters.HasValue);
             int firstCharIndex = tableParameters.Value.FirstCharIndex;
@@ -45,10 +67,10 @@ namespace Tests
             Assert.AreEqual(sampleText1[beginColumnIndexesOffset[2]], 'Н');
             Assert.AreEqual(sampleText1[beginColumnIndexesOffset[3]], 'К');
 
-            int lastRowIndex = tableDetector1.LastTableRowIndex(ref sampleText1, lastCharIndex);
+            int lastRowIndex = tableDetector.LastTableRowIndex(ref sampleText1, lastCharIndex);
             Assert.AreEqual(lastRowIndex, 25);
 
-            Assert.Pass();
+            return tableParameters.Value;
         }
     }
 }
