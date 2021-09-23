@@ -10,9 +10,9 @@ namespace ELMA.RPA.Scripts
     public class Context
     {
         /// <summary>
-        /// Строковый параметр.
+        /// Путь к файлу.
         /// </summary>
-        public String StringParam
+        public String FilePath
         {
             get;
             set;

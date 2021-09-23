@@ -56,30 +56,28 @@ namespace ELMA.RPA.Scripts
 
             List<string[]> dataList = new();
 
-            string[] row = new string[columnsLength];
-            for (int i = 0; i < row.Length; i++)
-            {
-                row[i] = "";
-            }
+            string[] row = Enumerable.Repeat("", columnsLength).ToArray();
             while (currentIndex < tableParameters.LastCharIndex)
             {
                 string[] tempRow = GetNextRowCells(text, tableParameters.BeginColumnIndexes, ref currentIndex);
+                if (IsEmptyRow(tempRow))
+                {
+                    continue;
+                }
                 if (!string.IsNullOrWhiteSpace(tempRow[0]))
                 {
                     if (!string.IsNullOrWhiteSpace(row[0]))
                     {
+                        row = row.Select(x => x.Trim()).ToArray();
                         dataList.Add(row);
                     }
-                    row = new string[columnsLength];
-                    for (int i = 0; i < row.Length; i++)
-                    {
-                        row[i] = "";
-                    }
+                    row = Enumerable.Repeat("", columnsLength).ToArray();
                 }
                 row = ConcatRows(new string[][] { row, tempRow });
             }
-            if (!string.IsNullOrWhiteSpace(row[0]))
+            if (!IsEmptyRow(row))
             {
+                row = row.Select(x => x.Trim()).ToArray();
                 dataList.Add(row);
             }
 
@@ -94,6 +92,7 @@ namespace ELMA.RPA.Scripts
                 r++;
             }
 
+            // TODO: Можно еще какие-нибудь проверочки понадобавлять для определения успешности
             return isSucces;
         }
 
@@ -139,9 +138,23 @@ namespace ELMA.RPA.Scripts
 
             for (int i = 0; i < columnsLength - 1; i++)
             {
-                row[i] = beginColumnIndexes[i + 1] < textLineLength
-                    ? textLine[beginColumnIndexes[i]..beginColumnIndexes[i + 1]].Trim()
-                    : "";
+                int beginIndex = beginColumnIndexes[i];
+                int endIndex = beginColumnIndexes[i + 1] - 1;
+                if (beginIndex < textLineLength && endIndex < textLineLength)
+                {
+                    // Нормальный вариант
+                    row[i] = textLine[beginColumnIndexes[i]..beginColumnIndexes[i + 1]].Trim();
+                }
+                else if (beginIndex < textLineLength)
+                {
+                    // Если индекс окончания выходит за пределы
+                    row[i] = textLine[beginColumnIndexes[i]..].Trim();
+                }
+                else
+                {
+                    // Если совсем тоска печаль и всё за пределы
+                    row[i] = "";
+                }
             }
             row[^1] = beginColumnIndexes[^1] < textLineLength
                 ? textLine[beginColumnIndexes[^1]..].Trim()
@@ -179,6 +192,30 @@ namespace ELMA.RPA.Scripts
             }
 
             return commonRow;
+        }
+
+        /// <summary>
+        /// Это пустая строка.
+        /// </summary>
+        /// <param name="row"></param>
+        /// <returns></returns>
+        private bool IsEmptyRow(string[] row)
+        {
+            bool isEmpty = true;
+
+            if (row.Length > 0)
+            {
+                foreach (var item in row)
+                {
+                    if (!string.IsNullOrWhiteSpace(item))
+                    {
+                        isEmpty = false;
+                        break;
+                    }
+                }
+            }
+
+            return isEmpty;
         }
     }
 }

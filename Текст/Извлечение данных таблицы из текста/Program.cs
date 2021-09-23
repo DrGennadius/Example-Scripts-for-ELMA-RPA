@@ -9,7 +9,10 @@ namespace ELMA.RPA.Scripts
     {
         static void Main()
         {
-            var context = new Context();
+            var context = new Context()
+            {
+                FilePath = "Пример текста.txt"
+            };
             var scriptActivity = new ScriptActivity();
             scriptActivity.Execute(context);
 
