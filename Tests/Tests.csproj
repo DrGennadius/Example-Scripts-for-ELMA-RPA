@@ -1,3 +1,4 @@
+﻿<?xml version="1.0" encoding="x-IA5"?>
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
@@ -5,6 +6,15 @@
 
     <IsPackable>false</IsPackable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="..\CommonAssets\Пример текста 2.txt" Link="Пример текста 2.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+      <Content Include="..\CommonAssets\Пример текста.txt" Link="Пример текста.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="NUnit" Version="3.12.0" />
@@ -15,12 +25,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Конфигурирование\Настройки в Excel\Настройки в Excel.csproj" />
     <ProjectReference Include="..\Текст\Извлечение данных таблицы из текста\Извлечение данных таблицы из текста.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="Текст\Пример текста.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 </Project>

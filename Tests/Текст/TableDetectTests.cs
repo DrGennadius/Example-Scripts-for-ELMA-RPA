@@ -14,11 +14,13 @@ namespace Tests
     public class TableDetectTests
     {
         string sampleText1;
+        string sampleText2;
 
         [SetUp]
         public void Setup()
         {
             sampleText1 = File.ReadAllText("Пример текста.txt");
+            sampleText2 = File.ReadAllText("Пример текста 2.txt");
         }
 
         [Test]
@@ -123,6 +125,35 @@ namespace Tests
             Assert.AreEqual(lastRowIndex, 25);
 
             return tableParameters.Value;
+        }
+
+        [Test]
+        public void MultiplyDetectTest()
+        {
+            TableDetectFeatures tableDetectFeatures = new()
+            {
+                FirstCellText = "№",
+                HasStartSequentialNumberingCells = false,
+                SplitPattern = @"\s{2,}",
+                LineSkipPattern = "(Это пример текста колонтитула, бла-бла-бла ООО.+$)"
+                                + "|(Документ сформирован порталом портала АО.+$)"
+            };
+
+            TableDetector tableDetector = new(tableDetectFeatures);
+
+            var tableParameters1 = tableDetector.Detect(sampleText2).Value;
+            var tableParameters2 = tableDetector.Detect(sampleText2, tableParameters1).Value;
+            var tableParameters3 = tableDetector.Detect(sampleText2, tableParameters2);
+
+            Assert.IsFalse(tableParameters3.HasValue);
+
+            Assert.AreEqual(tableParameters1.BeginColumnIndexes.Length, tableParameters2.BeginColumnIndexes.Length);
+            Assert.AreEqual(tableParameters1.BeginColumnIndexes[0], tableParameters2.BeginColumnIndexes[0]);
+            Assert.AreEqual(tableParameters1.BeginColumnIndexes[1], tableParameters2.BeginColumnIndexes[1]);
+            Assert.AreEqual(tableParameters1.BeginColumnIndexes[2], tableParameters2.BeginColumnIndexes[2]);
+            Assert.AreEqual(tableParameters1.BeginColumnIndexes[3], tableParameters2.BeginColumnIndexes[3]);
+
+            Assert.Pass();
         }
 
         private string GenerateTextWithTable()

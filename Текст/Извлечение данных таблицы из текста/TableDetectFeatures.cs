@@ -25,5 +25,13 @@ namespace ELMA.RPA.Scripts
         /// Паттерн разделения столбцов. Стандартно /\s{2,}/.
         /// </summary>
         public string SplitPattern { get; set; } = @"\s{2,}";
+
+        /// <summary>
+        /// Паттерн пропуска строк.
+        /// Например, если есть фрагменты колонтитулов,
+        /// которые сохранились в тексте, например,
+        /// после извлечения текта с текстового слоя PDF.
+        /// </summary>
+        public string LineSkipPattern { get; set; }
     }
 }

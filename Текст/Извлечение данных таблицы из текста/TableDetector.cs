@@ -25,8 +25,9 @@ namespace ELMA.RPA.Scripts
         /// Определение таблицы.
         /// </summary>
         /// <param name="text"></param>
+        /// <param name="startIndex">Индекс начального символа</param>
         /// <returns></returns>
-        public TableParameters? Detect(string text)
+        public TableParameters? Detect(string text, int startIndex = 0)
         {
             TableParameters? tableParameters = null;
 
@@ -35,7 +36,7 @@ namespace ELMA.RPA.Scripts
                 return tableParameters;
             }
 
-            int beginIndex = DetectFirstCharIndex(text);
+            int beginIndex = DetectFirstCharIndex(text, startIndex);
             if (beginIndex == -1)
             {
                 return tableParameters;
@@ -48,6 +49,17 @@ namespace ELMA.RPA.Scripts
             tableParameters = new TableParameters(beginIndex, endIndex, beginColumnIndexes);
 
             return tableParameters;
+        }
+
+        /// <summary>
+        /// Определение следующей таблицы после указанной таблицы.
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="prevTable">Таблица, после которой нужно искать</param>
+        /// <returns></returns>
+        public TableParameters? Detect(string text, TableParameters prevTable)
+        {
+            return Detect(text, prevTable.LastCharIndex + 1);
         }
 
         /// <summary>
@@ -81,12 +93,13 @@ namespace ELMA.RPA.Scripts
         /// Определение индекса первого символа.
         /// </summary>
         /// <param name="text"></param>
+        /// <param name="startIndex"></param>
         /// <returns></returns>
-        private int DetectFirstCharIndex(string text)
+        private int DetectFirstCharIndex(string text, int startIndex = 0)
         {
             if (!string.IsNullOrEmpty(_detectFeatures.FirstCellText))
             {
-                return text.IndexOf(_detectFeatures.FirstCellText);
+                return text.IndexOf(_detectFeatures.FirstCellText, startIndex);
             }
             else
             {
@@ -161,7 +174,7 @@ namespace ELMA.RPA.Scripts
 #if DEBUG
             char debugBeginChar = text[currentIndex];
 #endif
-
+            bool isCheckSkipOn = string.IsNullOrWhiteSpace(_detectFeatures.LineSkipPattern);
             string textLine = "";
             while (currentIndex < text.Length)
             {
@@ -176,7 +189,8 @@ namespace ELMA.RPA.Scripts
                     endLineIndex = text.Length - 1;
                     textLine = text[currentIndex..];
                 }
-                if (!IsValidRow(textLine, beginColumnIndexes))
+                bool isSkip = isCheckSkipOn && Regex.IsMatch(textLine, _detectFeatures.LineSkipPattern);
+                if (!isSkip && !IsValidRow(textLine, beginColumnIndexes))
                 {
                     break;
                 }

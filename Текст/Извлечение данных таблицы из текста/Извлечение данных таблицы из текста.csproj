@@ -9,9 +9,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <None Update="Пример текста.txt">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
+        <Content Include="..\..\CommonAssets\Пример текста.txt" Link="Пример текста.txt">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
-	
+    
 </Project>
