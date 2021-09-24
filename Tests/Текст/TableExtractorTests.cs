@@ -84,6 +84,28 @@ namespace Tests
             Assert.AreEqual(data1[3, 2], data2[3, 2]);
             Assert.AreEqual(data1[2, 1], data2[2, 1]);
 
+            // Сразу все.
+            tableExtractor.Clear();
+            var data = tableExtractor.GetAll(sampleText2).ToArray();
+            Assert.AreEqual(data.Length, 2);
+
+            Assert.AreEqual(data1.GetLength(0), data[0].GetLength(0));
+            Assert.AreEqual(data1.GetLength(1), data[0].GetLength(1));
+
+            Assert.AreEqual(data1[0, 0], data[0][0, 0]);
+            Assert.AreEqual(data1[1, 0], data[0][1, 0]);
+            Assert.AreEqual(data1[3, 2], data[0][3, 2]);
+            Assert.AreEqual(data1[2, 1], data[0][2, 1]);
+
+            // На всякий случай второй еще проверим.
+            Assert.AreEqual(data1.GetLength(0), data[1].GetLength(0));
+            Assert.AreEqual(data1.GetLength(1), data[1].GetLength(1));
+
+            Assert.AreEqual(data1[0, 0], data[1][0, 0]);
+            Assert.AreEqual(data1[1, 0], data[1][1, 0]);
+            Assert.AreEqual(data1[3, 2], data[1][3, 2]);
+            Assert.AreEqual(data1[2, 1], data[1][2, 1]);
+
             Assert.Pass();
         }
     }

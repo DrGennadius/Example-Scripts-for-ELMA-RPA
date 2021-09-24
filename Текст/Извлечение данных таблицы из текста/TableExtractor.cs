@@ -115,6 +115,32 @@ namespace ELMA.RPA.Scripts
         }
 
         /// <summary>
+        /// Извлечение данных и получение всех таблиц, которые будут обнаружены.
+        /// </summary>
+        /// <param name="text"></param>
+        /// <returns></returns>
+        public IEnumerable<string[,]> GetAll(string text)
+        {
+            Stack<string[,]> data = new();
+
+            while (ExtractNext(text))
+            {
+                data.Push(Data);
+            }
+
+            return data.AsEnumerable();
+        }
+
+        /// <summary>
+        /// Очистить.
+        /// </summary>
+        public void Clear()
+        {
+            _data = new string[0, 0];
+            _lastIndex = -1;
+        }
+
+        /// <summary>
         /// Получение ячеек строки.
         /// </summary>
         /// <param name="text"></param>

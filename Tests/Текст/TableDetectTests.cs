@@ -153,6 +153,23 @@ namespace Tests
             Assert.AreEqual(tableParameters1.BeginColumnIndexes[2], tableParameters2.BeginColumnIndexes[2]);
             Assert.AreEqual(tableParameters1.BeginColumnIndexes[3], tableParameters2.BeginColumnIndexes[3]);
 
+            // Сразу все.
+            var tablesParameters = tableDetector.DetectAll(sampleText2);
+
+            Assert.AreEqual(tablesParameters.Length, 2);
+
+            Assert.AreEqual(tableParameters1.BeginColumnIndexes.Length, tablesParameters[0].BeginColumnIndexes.Length);
+            Assert.AreEqual(tableParameters1.BeginColumnIndexes[0], tablesParameters[0].BeginColumnIndexes[0]);
+            Assert.AreEqual(tableParameters1.BeginColumnIndexes[1], tablesParameters[0].BeginColumnIndexes[1]);
+            Assert.AreEqual(tableParameters1.BeginColumnIndexes[2], tablesParameters[0].BeginColumnIndexes[2]);
+            Assert.AreEqual(tableParameters1.BeginColumnIndexes[3], tablesParameters[0].BeginColumnIndexes[3]);
+
+            Assert.AreEqual(tableParameters1.BeginColumnIndexes.Length, tablesParameters[0].BeginColumnIndexes.Length);
+            Assert.AreEqual(tableParameters1.BeginColumnIndexes[0], tablesParameters[0].BeginColumnIndexes[0]);
+            Assert.AreEqual(tableParameters1.BeginColumnIndexes[1], tablesParameters[0].BeginColumnIndexes[1]);
+            Assert.AreEqual(tableParameters1.BeginColumnIndexes[2], tablesParameters[0].BeginColumnIndexes[2]);
+            Assert.AreEqual(tableParameters1.BeginColumnIndexes[3], tablesParameters[0].BeginColumnIndexes[3]);
+
             Assert.Pass();
         }
 

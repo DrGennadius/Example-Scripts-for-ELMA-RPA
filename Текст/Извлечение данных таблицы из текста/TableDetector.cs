@@ -63,6 +63,34 @@ namespace ELMA.RPA.Scripts
         }
 
         /// <summary>
+        /// Определить все таблицы.
+        /// </summary>
+        /// <param name="text"></param>
+        /// <returns></returns>
+        public TableParameters[] DetectAll(string text)
+        {
+            List<TableParameters> tablesParameters = new();
+
+            TableParameters? tableParameters = Detect(text);
+
+            if (tableParameters.HasValue)
+            {
+                tablesParameters.Add(tableParameters.Value);
+            }
+
+            while (tableParameters.HasValue)
+            {
+                tableParameters = Detect(text, tableParameters.Value);
+                if (tableParameters.HasValue)
+                {
+                    tablesParameters.Add(tableParameters.Value);
+                }
+            }
+
+            return tablesParameters.ToArray();
+        }
+
+        /// <summary>
         /// Получить индекс последней строки таблицы по последнему индексу.
         /// </summary>
         /// <param name="text"></param>
