@@ -12,13 +12,13 @@ namespace ELMA.RPA.Scripts
     /// </summary>
     public class TableDetector
     {
-        readonly TableDetectFeatures _detectFeatures = new();
+        public TableDetectFeatures DetectFeatures { get; private set; }
 
         public TableDetector() {}
 
         public TableDetector(TableDetectFeatures detectFeatures)
         {
-            _detectFeatures = detectFeatures;
+            DetectFeatures = detectFeatures;
         }
 
         /// <summary>
@@ -97,9 +97,9 @@ namespace ELMA.RPA.Scripts
         /// <returns></returns>
         private int DetectFirstCharIndex(string text, int startIndex = 0)
         {
-            if (!string.IsNullOrEmpty(_detectFeatures.FirstCellText))
+            if (!string.IsNullOrEmpty(DetectFeatures.FirstCellText))
             {
-                return text.IndexOf(_detectFeatures.FirstCellText, startIndex);
+                return text.IndexOf(DetectFeatures.FirstCellText, startIndex);
             }
             else
             {
@@ -114,17 +114,17 @@ namespace ELMA.RPA.Scripts
         /// <returns></returns>
         private int DetectFirstCharIndexAuto(string text)
         {
-            if (string.IsNullOrEmpty(_detectFeatures.SplitPattern))
+            if (string.IsNullOrEmpty(DetectFeatures.SplitPattern))
             {
                 throw new Exception("SplitPattern не назначен.");
             }
 
             int index = -1;
             
-            var match = Regex.Match(text, _detectFeatures.SplitPattern);
+            var match = Regex.Match(text, DetectFeatures.SplitPattern);
             if (match.Success)
             {
-                string pattern = $"({Environment.NewLine})+(?={_detectFeatures.SplitPattern})";
+                string pattern = $"({Environment.NewLine})+(?={DetectFeatures.SplitPattern})";
                 var beginMatch = Regex.Match(text, pattern);
                 index = beginMatch.Success && beginMatch.Index <= match.Index
                     ? beginMatch.Index
@@ -147,7 +147,7 @@ namespace ELMA.RPA.Scripts
             // Ищем разделители. Тут должно быть без пропусков по идее,
             // т.к. это первая строка хидера таблицы,
             // где должны быть наименования столбцов.
-            var splitMatches = Regex.Matches(subText, _detectFeatures.SplitPattern);
+            var splitMatches = Regex.Matches(subText, DetectFeatures.SplitPattern);
             // Следующий текущий индекс это следующий символ после конца текущей строки.
             currentIndex = endLineIndex + Environment.NewLine.Length;
             // Расчитываем стартовые индексы начала столбцов
@@ -174,7 +174,7 @@ namespace ELMA.RPA.Scripts
 #if DEBUG
             char debugBeginChar = text[currentIndex];
 #endif
-            bool isCheckSkipOn = string.IsNullOrWhiteSpace(_detectFeatures.LineSkipPattern);
+            bool isCheckSkipOn = !string.IsNullOrWhiteSpace(DetectFeatures.LineSkipPattern);
             string textLine = "";
             while (currentIndex < text.Length)
             {
@@ -189,7 +189,7 @@ namespace ELMA.RPA.Scripts
                     endLineIndex = text.Length - 1;
                     textLine = text[currentIndex..];
                 }
-                bool isSkip = isCheckSkipOn && Regex.IsMatch(textLine, _detectFeatures.LineSkipPattern);
+                bool isSkip = isCheckSkipOn && Regex.IsMatch(textLine, DetectFeatures.LineSkipPattern);
                 if (!isSkip && !IsValidRow(textLine, beginColumnIndexes))
                 {
                     break;
@@ -226,7 +226,7 @@ namespace ELMA.RPA.Scripts
 
             bool isValid = IsValidRowBase(textLine, beginColumnIndexes);
 
-            if (isValid && _detectFeatures.HasStartSequentialNumberingCells)
+            if (isValid && DetectFeatures.HasStartSequentialNumberingCells)
             {
                 // Дополнительная проверка нумерации.
                 isValid = IsValidRowWithNumberingStart(textLine, beginColumnIndexes);
@@ -289,7 +289,7 @@ namespace ELMA.RPA.Scripts
             // Проверяем на разрез. Не будем что-то усложнять/оптимизировать, будем следовать простой логике.
             // По идее фрагмент содержит то, что является частью значения и разделительные символы в конце.
             // Т.е. должны получить 2 элемента, 2й должен быть пустым или 1 элемент если в конце строки.
-            var elements = Regex.Split(subText, _detectFeatures.SplitPattern);
+            var elements = Regex.Split(subText, DetectFeatures.SplitPattern);
             if (!((elements.Length == 2 && elements[1] == "") || (elements.Length == 1 && endIndex == textLine.Length - 1)))
             {
                 return false;

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace ELMA.RPA.Scripts
@@ -15,6 +16,8 @@ namespace ELMA.RPA.Scripts
 
         private string[,] _data = new string[0,0];
 
+        private int _lastIndex = -1;
+
         public TableExtractor() {}
 
         public TableExtractor(TableDetectFeatures detectFeatures)
@@ -22,9 +25,9 @@ namespace ELMA.RPA.Scripts
             _tableDetector = new(detectFeatures);
         }
 
-        public TableExtractor(TableDetector detectFeatures)
+        public TableExtractor(TableDetector detector)
         {
-            _tableDetector = detectFeatures;
+            _tableDetector = detector;
         }
 
         public string[,] Data => _data;
@@ -32,11 +35,12 @@ namespace ELMA.RPA.Scripts
         /// <summary>
         /// Извлечение данных таблицы.
         /// </summary>
-        /// <param name="text"></param>
+        /// <param name="text">Текст.</param>
+        /// <param name="startIndex">Начальный индекс.</param>
         /// <returns></returns>
-        public bool Extract(string text)
+        public bool Extract(string text, int startIndex = 0)
         {
-            var tableParameters = _tableDetector.Detect(text);
+            var tableParameters = _tableDetector.Detect(text, startIndex);
             return tableParameters.HasValue 
                 && Extract(text, tableParameters.Value);
         }
@@ -50,6 +54,7 @@ namespace ELMA.RPA.Scripts
         public bool Extract(string text, TableParameters tableParameters)
         {
             bool isSucces = true;
+            bool isCheckSkipOn = !string.IsNullOrWhiteSpace(_tableDetector.DetectFeatures.LineSkipPattern);
 
             int columnsLength = tableParameters.BeginColumnIndexes.Length;
             int currentIndex = tableParameters.FirstCharIndex;
@@ -59,7 +64,7 @@ namespace ELMA.RPA.Scripts
             string[] row = Enumerable.Repeat("", columnsLength).ToArray();
             while (currentIndex < tableParameters.LastCharIndex)
             {
-                string[] tempRow = GetNextRowCells(text, tableParameters.BeginColumnIndexes, ref currentIndex);
+                string[] tempRow = GetNextRowCells(text, tableParameters.BeginColumnIndexes, isCheckSkipOn, ref currentIndex);
                 if (IsEmptyRow(tempRow))
                 {
                     continue;
@@ -80,6 +85,7 @@ namespace ELMA.RPA.Scripts
                 row = row.Select(x => x.Trim()).ToArray();
                 dataList.Add(row);
             }
+            _lastIndex = currentIndex;
 
             _data = new string[dataList.Count, columnsLength];
             int r = 0;
@@ -97,13 +103,26 @@ namespace ELMA.RPA.Scripts
         }
 
         /// <summary>
+        /// Извлечение данных следующей таблицы.
+        /// </summary>
+        /// <param name="text"></param>
+        /// <returns></returns>
+        public bool ExtractNext(string text)
+        {
+            int index = _lastIndex + 1;
+            return index < text.Length
+                && Extract(text, index);
+        }
+
+        /// <summary>
         /// Получение ячеек строки.
         /// </summary>
         /// <param name="text"></param>
         /// <param name="beginColumnIndexes"></param>
+        /// <param name="isCheckSkipOn"></param>
         /// <param name="currentIndex"></param>
         /// <returns></returns>
-        private string[] GetNextRowCells(string text, int[] beginColumnIndexes, ref int currentIndex)
+        private string[] GetNextRowCells(string text, int[] beginColumnIndexes, bool isCheckSkipOn, ref int currentIndex)
         {
             string textLine = "";
 
@@ -121,6 +140,12 @@ namespace ELMA.RPA.Scripts
 
             currentIndex = endLineIndex + Environment.NewLine.Length;
 
+            // TODO: Тут можно, конечно же, лучше замутить,
+            // но пускай пока так, не будем усложнять еще как-то.
+            if (isCheckSkipOn && Regex.IsMatch(textLine, _tableDetector.DetectFeatures.LineSkipPattern))
+            {
+                return Enumerable.Repeat("", beginColumnIndexes.Length).ToArray();
+            }
             return ExtractCellsData(textLine, beginColumnIndexes);
         }
 
@@ -136,29 +161,36 @@ namespace ELMA.RPA.Scripts
             int textLineLength = textLine.Length;
             string[] row = new string[columnsLength];
 
-            for (int i = 0; i < columnsLength - 1; i++)
+            if (textLineLength > 0)
             {
-                int beginIndex = beginColumnIndexes[i];
-                int endIndex = beginColumnIndexes[i + 1] - 1;
-                if (beginIndex < textLineLength && endIndex < textLineLength)
+                for (int i = 0; i < columnsLength - 1; i++)
                 {
-                    // Нормальный вариант
-                    row[i] = textLine[beginColumnIndexes[i]..beginColumnIndexes[i + 1]].Trim();
+                    int beginIndex = beginColumnIndexes[i];
+                    int endIndex = beginColumnIndexes[i + 1] - 1;
+                    if (beginIndex < textLineLength && endIndex < textLineLength)
+                    {
+                        // Нормальный вариант
+                        row[i] = textLine[beginColumnIndexes[i]..beginColumnIndexes[i + 1]].Trim();
+                    }
+                    else if (beginIndex < textLineLength)
+                    {
+                        // Если индекс окончания выходит за пределы
+                        row[i] = textLine[beginColumnIndexes[i]..].Trim();
+                    }
+                    else
+                    {
+                        // Если совсем тоска печаль и всё за пределы
+                        row[i] = "";
+                    }
                 }
-                else if (beginIndex < textLineLength)
-                {
-                    // Если индекс окончания выходит за пределы
-                    row[i] = textLine[beginColumnIndexes[i]..].Trim();
-                }
-                else
-                {
-                    // Если совсем тоска печаль и всё за пределы
-                    row[i] = "";
-                }
+                row[^1] = beginColumnIndexes[^1] < textLineLength
+                    ? textLine[beginColumnIndexes[^1]..].Trim()
+                    : "";
             }
-            row[^1] = beginColumnIndexes[^1] < textLineLength
-                ? textLine[beginColumnIndexes[^1]..].Trim()
-                : "";
+            else
+            {
+                row = Enumerable.Repeat("", columnsLength).ToArray();
+            }
 
             return row;
         }
