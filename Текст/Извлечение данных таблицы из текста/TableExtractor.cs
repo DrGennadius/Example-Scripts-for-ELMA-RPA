@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+using System.Text.Unicode;
 
 namespace ELMA.RPA.Scripts
 {
@@ -30,7 +31,38 @@ namespace ELMA.RPA.Scripts
             _tableDetector = detector;
         }
 
+        /// <summary>
+        /// Данные.
+        /// </summary>
         public string[,] Data => _data;
+
+        /// <summary>
+        /// Данные как Json строка.
+        /// </summary>
+        public string JsonData
+        {
+            get
+            {
+                var options = new JsonSerializerOptions
+                {
+                    // Кодировка для Unicode: Basic Latin и Cyrillic
+                    Encoder = JavaScriptEncoder.Create(UnicodeRanges.BasicLatin, UnicodeRanges.Cyrillic)
+                };
+                int len0 = _data.GetLength(0);
+                int len1 = _data.GetLength(1);
+                string[][] arrayOfarray = new string[len0][];
+                for (int i = 0; i < len0; i++)
+                {
+                    string[] row = new string[len1];
+                    for (int k = 0; k < len1; k++)
+                    {
+                        row[k] = _data[i, k];
+                    }
+                    arrayOfarray[i] = row;
+                }
+                return JsonSerializer.Serialize(arrayOfarray, options);
+            }
+        }
 
         /// <summary>
         /// Извлечение данных таблицы.
