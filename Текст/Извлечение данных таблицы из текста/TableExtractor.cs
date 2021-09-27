@@ -15,11 +15,11 @@ namespace ELMA.RPA.Scripts
     {
         readonly TableDetector _tableDetector = new();
 
-        private string[,] _data = new string[0,0];
+        private string[,] _data = new string[0, 0];
 
         private int _lastIndex = -1;
 
-        public TableExtractor() {}
+        public TableExtractor() { }
 
         public TableExtractor(TableDetectFeatures detectFeatures)
         {
@@ -73,7 +73,7 @@ namespace ELMA.RPA.Scripts
         public bool Extract(string text, int startIndex = 0)
         {
             var tableParameters = _tableDetector.Detect(text, startIndex);
-            return tableParameters.HasValue 
+            return tableParameters.HasValue
                 && Extract(text, tableParameters.Value);
         }
 
@@ -101,16 +101,16 @@ namespace ELMA.RPA.Scripts
                 {
                     continue;
                 }
-                if (!string.IsNullOrWhiteSpace(tempRow[0]))
+                if (IsBeginNewTableRow(tempRow))
                 {
-                    if (!string.IsNullOrWhiteSpace(row[0]))
-                    {
-                        row = row.Select(x => x.Trim()).ToArray();
-                        dataList.Add(row);
-                    }
-                    row = Enumerable.Repeat("", columnsLength).ToArray();
+                    row = row.Select(x => x.Trim()).ToArray();
+                    dataList.Add(row);
+                    row = tempRow;
                 }
-                row = ConcatRows(new string[][] { row, tempRow });
+                else
+                {
+                    row = ConcatRows(new string[][] { row, tempRow });
+                }
             }
             if (!IsEmptyRow(row))
             {
@@ -306,6 +306,18 @@ namespace ELMA.RPA.Scripts
             }
 
             return isEmpty;
+        }
+
+        /// <summary>
+        /// Это начало новой строки?
+        /// </summary>
+        /// <param name="row"></param>
+        /// <returns></returns>
+        private bool IsBeginNewTableRow(string[] row)
+        {
+            return string.IsNullOrWhiteSpace(_tableDetector.DetectFeatures.FirstBodyRowCellWordPattern)
+                ? !string.IsNullOrWhiteSpace(row[0])
+                : Regex.IsMatch(row[0], _tableDetector.DetectFeatures.FirstBodyRowCellWordPattern);
         }
     }
 }

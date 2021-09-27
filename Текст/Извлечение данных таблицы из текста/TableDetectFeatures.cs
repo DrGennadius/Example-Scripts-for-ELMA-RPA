@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ELMA.RPA.Scripts
+﻿namespace ELMA.RPA.Scripts
 {
     /// <summary>
     /// Признаки для определения таблицы.
@@ -12,9 +6,14 @@ namespace ELMA.RPA.Scripts
     public class TableDetectFeatures
     {
         /// <summary>
-        /// Текст первой ячейки (слева вверху). Стандартно '№'.
+        /// Паттерн первой строки первой ячейки таблицы (слева вверху). Стандартно '№'.
         /// </summary>
-        public string FirstCellText { get; set; } = "№";
+        public string FirstTableCellWordPattern { get; set; } = "№";
+
+        /// <summary>
+        /// Паттерн первой строки первой ячейки строки тела таблицы (слева). Стандартно /\d+/
+        /// </summary>
+        public string FirstBodyRowCellWordPattern { get; set; } = @"\d+";
 
         /// <summary>
         /// Имеет последовательную нумерацию в первых ячейках. Стандартно true.

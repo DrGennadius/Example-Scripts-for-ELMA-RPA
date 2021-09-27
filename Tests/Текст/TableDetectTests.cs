@@ -1,7 +1,6 @@
 ﻿using ELMA.RPA.Scripts;
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -28,13 +27,13 @@ namespace Tests
         {
             TableDetectFeatures tableDetectFeatures1 = new()
             {
-                FirstCellText = "№",
+                FirstTableCellWordPattern = "№",
                 HasStartSequentialNumberingCells = false,
                 SplitPattern = @"\s{2,}"
             };
             TableDetectFeatures tableDetectFeatures2 = new()
             {
-                FirstCellText = "№",
+                FirstTableCellWordPattern = "№",
                 HasStartSequentialNumberingCells = true,
                 SplitPattern = @"\s{2,}"
             };
@@ -63,7 +62,7 @@ namespace Tests
 
             TableDetectFeatures tableDetectFeatures = new()
             {
-                FirstCellText = "№",
+                FirstTableCellWordPattern = "№",
                 HasStartSequentialNumberingCells = false,
                 SplitPattern = @"\s{2,}"
             };
@@ -132,7 +131,7 @@ namespace Tests
         {
             TableDetectFeatures tableDetectFeatures = new()
             {
-                FirstCellText = "№",
+                FirstTableCellWordPattern = "№",
                 HasStartSequentialNumberingCells = false,
                 SplitPattern = @"\s{2,}",
                 LineSkipPattern = "(Это пример текста колонтитула, бла-бла-бла ООО.+$)"

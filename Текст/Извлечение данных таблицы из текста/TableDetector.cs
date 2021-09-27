@@ -14,7 +14,7 @@ namespace ELMA.RPA.Scripts
     {
         public TableDetectFeatures DetectFeatures { get; private set; }
 
-        public TableDetector() {}
+        public TableDetector() { }
 
         public TableDetector(TableDetectFeatures detectFeatures)
         {
@@ -125,9 +125,16 @@ namespace ELMA.RPA.Scripts
         /// <returns></returns>
         private int DetectFirstCharIndex(string text, int startIndex = 0)
         {
-            if (!string.IsNullOrEmpty(DetectFeatures.FirstCellText))
+            if (!string.IsNullOrEmpty(DetectFeatures.FirstTableCellWordPattern))
             {
-                return text.IndexOf(DetectFeatures.FirstCellText, startIndex);
+#if DEBUG
+                // Старый вариант через string.IndexOf
+                int debugIndex = text.IndexOf(DetectFeatures.FirstTableCellWordPattern, startIndex);
+#endif
+                string subText = text[startIndex..];
+                var match = Regex.Match(subText, DetectFeatures.FirstTableCellWordPattern);
+                int index = match.Success ? startIndex + match.Index : -1;
+                return index;
             }
             else
             {
@@ -148,7 +155,7 @@ namespace ELMA.RPA.Scripts
             }
 
             int index = -1;
-            
+
             var match = Regex.Match(text, DetectFeatures.SplitPattern);
             if (match.Success)
             {
