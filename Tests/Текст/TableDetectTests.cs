@@ -25,13 +25,13 @@ namespace Tests
         [Test]
         public void SimpleDetectTest()
         {
-            TableDetectFeatures tableDetectFeatures1 = new()
+            TableFeatures tableDetectFeatures1 = new()
             {
                 FirstTableCellWordPattern = "№",
                 HasStartSequentialNumberingCells = false,
                 SplitPattern = @"\s{2,}"
             };
-            TableDetectFeatures tableDetectFeatures2 = new()
+            TableFeatures tableDetectFeatures2 = new()
             {
                 FirstTableCellWordPattern = "№",
                 HasStartSequentialNumberingCells = true,
@@ -60,7 +60,7 @@ namespace Tests
             Task task = new(() => PrintPrivateMemory(), cancellationToken);
             task.Start();
 
-            TableDetectFeatures tableDetectFeatures = new()
+            TableFeatures tableDetectFeatures = new()
             {
                 FirstTableCellWordPattern = "№",
                 HasStartSequentialNumberingCells = false,
@@ -101,7 +101,7 @@ namespace Tests
             Assert.Pass();
         }
 
-        private TableParameters SimpleDetectTestBody(TableDetectFeatures tableDetectFeatures)
+        private TableParameters SimpleDetectTestBody(TableFeatures tableDetectFeatures)
         {
             TableDetector tableDetector = new(tableDetectFeatures);
             var tableParameters = tableDetector.Detect(sampleText1);
@@ -129,7 +129,7 @@ namespace Tests
         [Test]
         public void MultiplyDetectTest()
         {
-            TableDetectFeatures tableDetectFeatures = new()
+            TableFeatures tableDetectFeatures = new()
             {
                 FirstTableCellWordPattern = "№",
                 HasStartSequentialNumberingCells = false,

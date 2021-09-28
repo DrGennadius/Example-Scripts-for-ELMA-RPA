@@ -27,7 +27,7 @@ namespace ELMA.RPA.Scripts
                 string text = File.ReadAllText(context.FilePath);
                 
                 // Конфигурируем признаки, по которым будем искать таблицу.
-                TableDetectFeatures tableDetectFeatures = new()
+                TableFeatures tableDetectFeatures = new()
                 {
                     HasStartSequentialNumberingCells = true
                 };
@@ -40,7 +40,7 @@ namespace ELMA.RPA.Scripts
                 // Далее можно обращаться к данным, если успешно
                 if (isSucces)
                 {
-                    string data1 = tableExtractor.Data[0, 0];
+                    string data1 = tableExtractor.Data[0][0];
                     // ...
                     // Еще какой-нибудь код...
                     // ...

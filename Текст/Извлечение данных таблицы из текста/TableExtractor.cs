@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -15,13 +16,13 @@ namespace ELMA.RPA.Scripts
     {
         readonly TableDetector _tableDetector = new();
 
-        private string[,] _data = new string[0, 0];
+        private string[][] _data = Array.Empty<string[]>();
 
         private int _lastIndex = -1;
 
         public TableExtractor() { }
 
-        public TableExtractor(TableDetectFeatures detectFeatures)
+        public TableExtractor(TableFeatures detectFeatures)
         {
             _tableDetector = new(detectFeatures);
         }
@@ -34,7 +35,7 @@ namespace ELMA.RPA.Scripts
         /// <summary>
         /// Данные.
         /// </summary>
-        public string[,] Data => _data;
+        public string[][] Data => _data;
 
         /// <summary>
         /// Данные как Json строка.
@@ -48,19 +49,33 @@ namespace ELMA.RPA.Scripts
                     // Кодировка для Unicode: Basic Latin и Cyrillic
                     Encoder = JavaScriptEncoder.Create(UnicodeRanges.BasicLatin, UnicodeRanges.Cyrillic)
                 };
-                int len0 = _data.GetLength(0);
-                int len1 = _data.GetLength(1);
-                string[][] arrayOfarray = new string[len0][];
-                for (int i = 0; i < len0; i++)
+                return JsonSerializer.Serialize(_data, options);
+            }
+        }
+
+        /// <summary>
+        /// Данные как матрица.
+        /// </summary>
+        public string[,] MatrixData
+        {
+            get
+            {
+                if (_data.Length == 0)
                 {
-                    string[] row = new string[len1];
-                    for (int k = 0; k < len1; k++)
-                    {
-                        row[k] = _data[i, k];
-                    }
-                    arrayOfarray[i] = row;
+                    return new string[0, 0];
                 }
-                return JsonSerializer.Serialize(arrayOfarray, options);
+                int len1 = _data.Length;
+                int len2 = _data[0].Length;
+                string[,] matrix = new string[len1, len2];
+                int r = 0;
+                for (int i = 0; i < len1; i++)
+                {
+                    for (int k = 0; k < len2; k++)
+                    {
+                        matrix[r, k] = _data[i][k];
+                    }
+                }
+                return matrix;
             }
         }
 
@@ -86,49 +101,81 @@ namespace ELMA.RPA.Scripts
         public bool Extract(string text, TableParameters tableParameters)
         {
             bool isSucces = true;
-            bool isCheckSkipOn = !string.IsNullOrWhiteSpace(_tableDetector.DetectFeatures.LineSkipPattern);
-
             int columnsLength = tableParameters.BeginColumnIndexes.Length;
-            int currentIndex = tableParameters.FirstCharIndex;
+
+            string[][] rawData = GetRawTableData(text, tableParameters);
+            if (rawData.Length == 0 || rawData[0].Length == 0)
+            {
+                return false;
+            }
 
             List<string[]> dataList = new();
 
-            string[] row = Enumerable.Repeat("", columnsLength).ToArray();
-            while (currentIndex < tableParameters.LastCharIndex)
+            string[] row = Array.Empty<string>();
+            if (_tableDetector.DetectFeatures.HeaderCellPatterns.Any())
             {
-                string[] tempRow = GetNextRowCells(text, tableParameters.BeginColumnIndexes, isCheckSkipOn, ref currentIndex);
-                if (IsEmptyRow(tempRow))
+                // Немного улучшенный вариант. Использывание паттернов ячеек заголовка.
+                var result = CalcHeaderCellsByPatterns(rawData, _tableDetector.DetectFeatures.HeaderCellPatterns);
+                int actualColumnsLength = result.CheckHeaderCellByPatternResults.Length;
+                row = Enumerable.Repeat("", actualColumnsLength).ToArray();
+                if (result.IsSucces)
                 {
-                    continue;
+                    string[] tempRow = result.CheckHeaderCellByPatternResults.Select(x => x.CellText).ToArray();
+                    dataList.Add(tempRow);
+                    int currentRowIndex = result.CheckHeaderCellByPatternResults.Max(x => x.EndRowIndex) + 1;
+                    for (int i = currentRowIndex; i < rawData.Length; i++)
+                    {
+                        int rawColumnIndex = -1;
+                        tempRow = Enumerable.Repeat("", actualColumnsLength).ToArray();
+                        for (int k = 0; k < actualColumnsLength; k++)
+                        {
+                            var cellParams = result.CheckHeaderCellByPatternResults[k];
+                            int offset = cellParams.EndColumnIndex - cellParams.BeginColumnIndex;
+                            for (int c = 0; c < offset + 1; c++)
+                            {
+                                rawColumnIndex++;
+                                tempRow[k] += rawData[i][rawColumnIndex].Trim() + ' ';
+                            }
+                        }
+                        if (IsBeginNewTableRow(tempRow) && !IsEmptyRow(row))
+                        {
+                            dataList.Add(row);
+                            row = tempRow;
+                        }
+                        else
+                        {
+                            row = ConcatRows(new string[][] { row, tempRow })
+                                .Select(x => x.Trim())
+                                .ToArray();
+                        }
+                    }
                 }
-                if (IsBeginNewTableRow(tempRow))
+            }
+            else
+            {
+                // Обычный вариант.
+                row = Enumerable.Repeat("", rawData[0].Length).ToArray();
+                foreach (var rawRow in rawData)
                 {
-                    row = row.Select(x => x.Trim()).ToArray();
-                    dataList.Add(row);
-                    row = tempRow;
-                }
-                else
-                {
-                    row = ConcatRows(new string[][] { row, tempRow });
+                    if (IsBeginNewTableRow(rawRow) && !IsEmptyRow(row))
+                    {
+                        dataList.Add(row);
+                        row = rawRow;
+                    }
+                    else
+                    {
+                        row = ConcatRows(new string[][] { row, rawRow })
+                            .Select(x => x.Trim())
+                            .ToArray();
+                    }
                 }
             }
             if (!IsEmptyRow(row))
             {
-                row = row.Select(x => x.Trim()).ToArray();
                 dataList.Add(row);
             }
-            _lastIndex = currentIndex;
 
-            _data = new string[dataList.Count, columnsLength];
-            int r = 0;
-            foreach (var item in dataList)
-            {
-                for (int k = 0; k < columnsLength; k++)
-                {
-                    _data[r, k] = item[k];
-                }
-                r++;
-            }
+            _data = dataList.ToArray();
 
             // TODO: Можно еще какие-нибудь проверочки понадобавлять для определения успешности
             return isSucces;
@@ -151,9 +198,9 @@ namespace ELMA.RPA.Scripts
         /// </summary>
         /// <param name="text"></param>
         /// <returns></returns>
-        public IEnumerable<string[,]> GetAll(string text)
+        public IEnumerable<string[][]> GetAll(string text)
         {
-            Stack<string[,]> data = new();
+            Stack<string[][]> data = new();
 
             while (ExtractNext(text))
             {
@@ -168,8 +215,34 @@ namespace ELMA.RPA.Scripts
         /// </summary>
         public void Clear()
         {
-            _data = new string[0, 0];
+            _data = Array.Empty<string[]>();
             _lastIndex = -1;
+        }
+
+        /// <summary>
+        /// Получить "сырые" данные таблицы без каких либор дополнительных обработок.
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="tableParameters"></param>
+        /// <returns></returns>
+        private string[][] GetRawTableData(string text, TableParameters tableParameters)
+        {
+            bool isCheckSkipOn = !string.IsNullOrWhiteSpace(_tableDetector.DetectFeatures.LineSkipPattern);
+            int currentIndex = tableParameters.FirstCharIndex;
+
+            List<string[]> dataList = new();
+            while (currentIndex < tableParameters.LastCharIndex)
+            {
+                string[] tempRow = GetNextRowCells(text, tableParameters.BeginColumnIndexes, isCheckSkipOn, ref currentIndex);
+                if (IsEmptyRow(tempRow))
+                {
+                    continue;
+                }
+                dataList.Add(tempRow);
+            }
+            _lastIndex = currentIndex;
+
+            return dataList.ToArray();
         }
 
         /// <summary>
@@ -318,6 +391,112 @@ namespace ELMA.RPA.Scripts
             return string.IsNullOrWhiteSpace(_tableDetector.DetectFeatures.FirstBodyRowCellWordPattern)
                 ? !string.IsNullOrWhiteSpace(row[0])
                 : Regex.IsMatch(row[0], _tableDetector.DetectFeatures.FirstBodyRowCellWordPattern);
+        }
+
+        /// <summary>
+        /// Расчитать параметры ячеек заголовка по паттернам.
+        /// </summary>
+        /// <param name="rawData"></param>
+        /// <param name="headerCellPatterns"></param>
+        /// <returns></returns>
+        private CalcHeaderCellsByPatternsResult CalcHeaderCellsByPatterns(string[][] rawData, List<string> headerCellPatterns)
+        {
+            List<string> normalHeaderCellPatterns = headerCellPatterns.Select(x => Regex.Replace(x, @"\s{2,}", " ")).ToList();
+            int columnCount = rawData[0].Length;
+            int currentColumnIndex = 0;
+            List<CheckHeaderCellByPatternResult> checkHeaderCellByPatternResults = new();
+            foreach (var pattern in normalHeaderCellPatterns)
+            {
+                var checkResult = CheckHeaderCellByPattern(rawData, pattern, ref currentColumnIndex);
+                if (checkResult.IsSucces)
+                {
+                    checkHeaderCellByPatternResults.Add(checkResult);
+                }
+                else
+                {
+                    break;
+                }
+            }
+            bool isSucces = checkHeaderCellByPatternResults.Count == normalHeaderCellPatterns.Count;
+            CalcHeaderCellsByPatternsResult result = new(isSucces,
+                isSucces
+                ? checkHeaderCellByPatternResults.ToArray()
+                : Array.Empty<CheckHeaderCellByPatternResult>());
+            return result;
+        }
+
+        /// <summary>
+        /// Проверка ячеейки заголовка по паттерну.
+        /// </summary>
+        /// <param name="rawData"></param>
+        /// <param name="headerCellPattern"></param>
+        /// <param name="currentColumnIndex"></param>
+        /// <returns></returns>
+        private CheckHeaderCellByPatternResult CheckHeaderCellByPattern(string[][] rawData, string headerCellPattern, ref int currentColumnIndex)
+        {
+            CheckHeaderCellByPatternResult result = new(false, "", -1, -1, -1, -1);
+            int columnCount = rawData[0].Length;
+            int rowCount = rawData.Length;
+            for (int x1 = currentColumnIndex; x1 < columnCount; x1++)
+            {
+                currentColumnIndex++;
+                for (int x2 = x1; x2 < columnCount; x2++)
+                {
+                    for (int y1 = 0; y1 < rowCount; y1++)
+                    {
+                        for (int y2 = y1; y2 < rowCount; y2++)
+                        {
+                            int subLen1 = y2 - y1 + 1;
+                            int subLen2 = x2 - x1 + 1;
+                            string[][] testData = new string[subLen1][];
+                            for (int i = y1; i <= y2; i++)
+                            {
+                                string[] row = new string[subLen2];
+                                for (int k = x1; k <= x2; k++)
+                                {
+                                    row[k - x1] = rawData[i][k];
+                                }
+                                testData[i - y1] = row;
+                            }
+                            string testText = GetSingleTestCellText(testData);
+                            if (Regex.IsMatch(testText, headerCellPattern))
+                            {
+                                currentColumnIndex = x2 + 1;
+                                result = new(
+                                    isSucces: true,
+                                    cellText: testText,
+                                    beginRowIndex: y1,
+                                    beginColumnIndex: x1,
+                                    endRowIndex: y2,
+                                    endColumnIndex: x2);
+                                return result;
+                            }
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Получить объединенный текст с нескольких ячеек.
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        private string GetSingleTestCellText(string[][] data)
+        {
+            StringBuilder builder = new();
+
+            foreach (var row in data)
+            {
+                foreach (var cell in row)
+                {
+                    string cellText = Regex.Replace(cell, @"\s{2,}", " ").Trim() + ' ';
+                    builder.Append(cellText);
+                }
+            }
+
+            return builder.ToString().Trim();
         }
     }
 }

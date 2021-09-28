@@ -1,9 +1,11 @@
-﻿namespace ELMA.RPA.Scripts
+﻿using System.Collections.Generic;
+
+namespace ELMA.RPA.Scripts
 {
     /// <summary>
     /// Признаки для определения таблицы.
     /// </summary>
-    public class TableDetectFeatures
+    public class TableFeatures
     {
         /// <summary>
         /// Паттерн первой строки первой ячейки таблицы (слева вверху). Стандартно '№'.
@@ -32,5 +34,10 @@
         /// после извлечения текта с текстового слоя PDF.
         /// </summary>
         public string LineSkipPattern { get; set; }
+
+        /// <summary>
+        /// Список паттернов ячеек заголовка таблицы.
+        /// </summary>
+        public List<string> HeaderCellPatterns = new();
     }
 }

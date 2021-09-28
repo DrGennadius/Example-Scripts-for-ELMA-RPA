@@ -12,11 +12,11 @@ namespace ELMA.RPA.Scripts
     /// </summary>
     public class TableDetector
     {
-        public TableDetectFeatures DetectFeatures { get; private set; }
+        public TableFeatures DetectFeatures { get; private set; }
 
         public TableDetector() { }
 
-        public TableDetector(TableDetectFeatures detectFeatures)
+        public TableDetector(TableFeatures detectFeatures)
         {
             DetectFeatures = detectFeatures;
         }
