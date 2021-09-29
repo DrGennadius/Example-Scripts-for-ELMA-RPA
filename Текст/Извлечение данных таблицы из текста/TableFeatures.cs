@@ -38,6 +38,6 @@ namespace ELMA.RPA.Scripts
         /// <summary>
         /// Список паттернов ячеек заголовка таблицы.
         /// </summary>
-        public List<string> HeaderCellPatterns = new();
+        public List<string> HeaderCellPatterns { get; set; } = new();
     }
 }

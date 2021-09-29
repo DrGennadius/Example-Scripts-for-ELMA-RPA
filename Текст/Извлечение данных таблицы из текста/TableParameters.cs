@@ -24,12 +24,34 @@ namespace ELMA.RPA.Scripts
         /// <summary>
         /// Индексы начала столбцов в каждой строке.
         /// </summary>
-        public int[] BeginColumnIndexes;
+        public List<BeginColumnIndexesItem> BeginColumnIndexesItems;
 
-        public TableParameters(int firstCharIndex, int lastCharIndex, int[] beginColumnIndexes)
+        public TableParameters(int firstCharIndex, int lastCharIndex, List<BeginColumnIndexesItem> beginColumnIndexesItem)
         {
             FirstCharIndex = firstCharIndex;
             LastCharIndex = lastCharIndex;
+            BeginColumnIndexesItems = beginColumnIndexesItem;
+        }
+    }
+
+    /// <summary>
+    /// Уникальный элемент индексов начала столбцов.
+    /// </summary>
+    public struct BeginColumnIndexesItem
+    {
+        /// <summary>
+        /// Индекс символа в тексте.
+        /// </summary>
+        public int TextBeginCharIndex;
+
+        /// <summary>
+        /// Индексы начала столбцов.
+        /// </summary>
+        public int[] BeginColumnIndexes;
+
+        public BeginColumnIndexesItem(int textBeginCharIndex, int[] beginColumnIndexes)
+        {
+            TextBeginCharIndex = textBeginCharIndex;
             BeginColumnIndexes = beginColumnIndexes;
         }
     }

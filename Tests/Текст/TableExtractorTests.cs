@@ -165,7 +165,7 @@ namespace Tests
         [Test]
         public void SimpleExtractTest2()
         {
-            TableFeatures tableDetectFeatures = new()
+            TableFeatures tableDetectFeatures1 = new()
             {
                 HeaderCellPatterns = new()
                 {
@@ -181,11 +181,23 @@ namespace Tests
                 HasStartSequentialNumberingCells = false,
                 SplitPattern = @"\s{2,}"
             };
-            TableExtractor tableExtractor = new(tableDetectFeatures);
+            TableFeatures tableDetectFeatures2 = new()
+            {
+                FirstTableCellWordPattern = "№",
+                FirstBodyRowCellWordPattern = @"\d+",
+                HasStartSequentialNumberingCells = false,
+                LineSkipPattern = @"(Құжат.+электронды порталымен қүрылған)|(Документ сформирован порталом электронных закупок.+\d+)"
+            };
+            TableExtractor tableExtractor = new(tableDetectFeatures1);
             tableExtractor.Extract(sampleText3);
 
             Assert.AreEqual(tableExtractor.Data.Length, 5);
             Assert.AreEqual(tableExtractor.Data[0].Length, 6);
+
+            tableExtractor.TableDetector.DetectFeatures = tableDetectFeatures2;
+            tableExtractor.ExtractNext(sampleText3);
+            Assert.AreEqual(tableExtractor.Data.Length, 15);
+            Assert.AreEqual(tableExtractor.Data[0].Length, 4);
 
             Assert.Pass();
         }

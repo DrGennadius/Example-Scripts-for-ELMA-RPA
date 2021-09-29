@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace ELMA.RPA.Scripts
 {
@@ -12,7 +10,7 @@ namespace ELMA.RPA.Scripts
     /// </summary>
     public class TableDetector
     {
-        public TableFeatures DetectFeatures { get; private set; }
+        public TableFeatures DetectFeatures { get; set; }
 
         public TableDetector() { }
 
@@ -44,9 +42,9 @@ namespace ELMA.RPA.Scripts
 
             int currentIndex = beginIndex;
             var beginColumnIndexes = DetectBeginColumnIndexes(text, ref currentIndex);
-            int endIndex = PassToEndTable(text, ref currentIndex, beginColumnIndexes);
+            var fullBeginColumnIndexes = PassToEndTable(text, beginIndex, ref currentIndex, beginColumnIndexes);
 
-            tableParameters = new TableParameters(beginIndex, endIndex, beginColumnIndexes);
+            tableParameters = new TableParameters(beginIndex, currentIndex, fullBeginColumnIndexes);
 
             return tableParameters;
         }
@@ -177,14 +175,29 @@ namespace ELMA.RPA.Scripts
         /// <returns></returns>
         private int[] DetectBeginColumnIndexes(string text, ref int currentIndex)
         {
+            string subText = "";
             int endLineIndex = text.IndexOf(Environment.NewLine, currentIndex);
-            string subText = text[currentIndex..endLineIndex];
+            if (endLineIndex >= 0)
+            {
+                subText = text[currentIndex..endLineIndex];
+            }
+            else
+            {
+                // Берем последний символ, если не найден перенос.
+                endLineIndex = text.Length - 1;
+                subText = text[currentIndex..];
+            }
             // Ищем разделители. Тут должно быть без пропусков по идее,
             // т.к. это первая строка хидера таблицы,
             // где должны быть наименования столбцов.
             var splitMatches = Regex.Matches(subText, DetectFeatures.SplitPattern);
             // Следующий текущий индекс это следующий символ после конца текущей строки.
             currentIndex = endLineIndex + Environment.NewLine.Length;
+            if (splitMatches.Count == 0)
+            {
+                // Если не было разделено, то значит возвращаем только один индекс.
+                return new int[] { 0 };
+            }
             // Расчитываем стартовые индексы начала столбцов
             // ic = начальный индекс разделителя + длина разделителя
             int[] beginIndexes = splitMatches.Select(x => x.Index + x.Value.Length).ToArray();
@@ -201,15 +214,19 @@ namespace ELMA.RPA.Scripts
         /// Дойти до конца таблицы.
         /// </summary>
         /// <param name="text"></param>
+        /// <param name="startIndex"></param>
         /// <param name="currentIndex"></param>
         /// <param name="beginColumnIndexes"></param>
-        /// <returns></returns>
-        private int PassToEndTable(string text, ref int currentIndex, int[] beginColumnIndexes)
+        /// <returns>Полный массив начал строк.</returns>
+        private List<BeginColumnIndexesItem> PassToEndTable(string text, int startIndex, ref int currentIndex, int[] beginColumnIndexes)
         {
 #if DEBUG
             char debugBeginChar = text[currentIndex];
 #endif
             bool isCheckSkipOn = !string.IsNullOrWhiteSpace(DetectFeatures.LineSkipPattern);
+            BeginColumnIndexesItem lastIndexes = new(startIndex, beginColumnIndexes);
+            List<BeginColumnIndexesItem> fullBeginColumnIndexes = new();
+            fullBeginColumnIndexes.Add(lastIndexes);
             string textLine = "";
             while (currentIndex < text.Length)
             {
@@ -224,16 +241,31 @@ namespace ELMA.RPA.Scripts
                     endLineIndex = text.Length - 1;
                     textLine = text[currentIndex..];
                 }
+                // Устанавливаем следующий индекс начала следующим после конца этой строки.
+                currentIndex = endLineIndex + Environment.NewLine.Length;
+
                 bool isSkip = isCheckSkipOn && Regex.IsMatch(textLine, DetectFeatures.LineSkipPattern);
-                if (!isSkip && !IsValidRow(textLine, beginColumnIndexes))
+
+                if (isSkip)
+                {
+                    var newBeginColumnIndexes = CalcNewBeginColumnIndexesVariant(text, beginColumnIndexes, ref currentIndex);
+                    if (newBeginColumnIndexes.TextBeginCharIndex == -1 || newBeginColumnIndexes.BeginColumnIndexes.Length == 0)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        lastIndexes = newBeginColumnIndexes;
+                        fullBeginColumnIndexes.Add(newBeginColumnIndexes);
+                    }
+                }
+                else if (!IsValidRow(textLine, lastIndexes.BeginColumnIndexes))
                 {
                     break;
                 }
-                // Устанавливаем следующий индекс начала следующим после конца этой строки.
-                currentIndex = endLineIndex + Environment.NewLine.Length;
             }
 
-            return currentIndex;
+            return fullBeginColumnIndexes;
         }
 
         /// <summary>
@@ -357,6 +389,31 @@ namespace ELMA.RPA.Scripts
             }
 
             return isValid;
+        }
+
+        /// <summary>
+        /// Расчитать новый вариант индексов начал столбцов.
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="currentIndex"></param>
+        /// <param name="originBeginColumnIndexes"></param>
+        /// <returns></returns>
+        private BeginColumnIndexesItem CalcNewBeginColumnIndexesVariant(string text, int[] originBeginColumnIndexes, ref int currentIndex)
+        {
+            int[] beginColumnIndexes = Array.Empty<int>();
+            int storedIndex = -1;
+
+            while (currentIndex < text.Length)
+            {
+                storedIndex = currentIndex;
+                beginColumnIndexes = DetectBeginColumnIndexes(text, ref currentIndex);
+                if (beginColumnIndexes.Length == originBeginColumnIndexes.Length)
+                {
+                    break;
+                }
+            }
+
+            return new(storedIndex, beginColumnIndexes);
         }
     }
 }

@@ -14,8 +14,6 @@ namespace ELMA.RPA.Scripts
     /// </summary>
     public class TableExtractor
     {
-        readonly TableDetector _tableDetector = new();
-
         private string[][] _data = Array.Empty<string[]>();
 
         private int _lastIndex = -1;
@@ -24,12 +22,12 @@ namespace ELMA.RPA.Scripts
 
         public TableExtractor(TableFeatures detectFeatures)
         {
-            _tableDetector = new(detectFeatures);
+            TableDetector = new(detectFeatures);
         }
 
         public TableExtractor(TableDetector detector)
         {
-            _tableDetector = detector;
+            TableDetector = detector;
         }
 
         /// <summary>
@@ -80,6 +78,11 @@ namespace ELMA.RPA.Scripts
         }
 
         /// <summary>
+        /// Обнаруживаетель таблиц.
+        /// </summary>
+        public TableDetector TableDetector { get; set; }
+
+        /// <summary>
         /// Извлечение данных таблицы.
         /// </summary>
         /// <param name="text">Текст.</param>
@@ -87,7 +90,7 @@ namespace ELMA.RPA.Scripts
         /// <returns></returns>
         public bool Extract(string text, int startIndex = 0)
         {
-            var tableParameters = _tableDetector.Detect(text, startIndex);
+            var tableParameters = TableDetector.Detect(text, startIndex);
             return tableParameters.HasValue
                 && Extract(text, tableParameters.Value);
         }
@@ -101,7 +104,13 @@ namespace ELMA.RPA.Scripts
         public bool Extract(string text, TableParameters tableParameters)
         {
             bool isSucces = true;
-            int columnsLength = tableParameters.BeginColumnIndexes.Length;
+
+            if (tableParameters.BeginColumnIndexesItems.Count == 0)
+            {
+                return false;
+            }
+
+            int columnsLength = tableParameters.BeginColumnIndexesItems[0].BeginColumnIndexes.Length;
 
             string[][] rawData = GetRawTableData(text, tableParameters);
             if (rawData.Length == 0 || rawData[0].Length == 0)
@@ -112,10 +121,10 @@ namespace ELMA.RPA.Scripts
             List<string[]> dataList = new();
 
             string[] row = Array.Empty<string>();
-            if (_tableDetector.DetectFeatures.HeaderCellPatterns.Any())
+            if (TableDetector.DetectFeatures.HeaderCellPatterns.Any())
             {
                 // Немного улучшенный вариант. Использывание паттернов ячеек заголовка.
-                var result = CalcHeaderCellsByPatterns(rawData, _tableDetector.DetectFeatures.HeaderCellPatterns);
+                var result = CalcHeaderCellsByPatterns(rawData, TableDetector.DetectFeatures.HeaderCellPatterns);
                 int actualColumnsLength = result.CheckHeaderCellByPatternResults.Length;
                 row = Enumerable.Repeat("", actualColumnsLength).ToArray();
                 if (result.IsSucces)
@@ -227,13 +236,14 @@ namespace ELMA.RPA.Scripts
         /// <returns></returns>
         private string[][] GetRawTableData(string text, TableParameters tableParameters)
         {
-            bool isCheckSkipOn = !string.IsNullOrWhiteSpace(_tableDetector.DetectFeatures.LineSkipPattern);
+            bool isCheckSkipOn = !string.IsNullOrWhiteSpace(TableDetector.DetectFeatures.LineSkipPattern);
             int currentIndex = tableParameters.FirstCharIndex;
 
             List<string[]> dataList = new();
             while (currentIndex < tableParameters.LastCharIndex)
             {
-                string[] tempRow = GetNextRowCells(text, tableParameters.BeginColumnIndexes, isCheckSkipOn, ref currentIndex);
+                var currentIndexes = tableParameters.BeginColumnIndexesItems.Find(x => currentIndex >= x.TextBeginCharIndex);
+                string[] tempRow = GetNextRowCells(text, currentIndexes.BeginColumnIndexes, isCheckSkipOn, ref currentIndex);
                 if (IsEmptyRow(tempRow))
                 {
                     continue;
@@ -273,7 +283,7 @@ namespace ELMA.RPA.Scripts
 
             // TODO: Тут можно, конечно же, лучше замутить,
             // но пускай пока так, не будем усложнять еще как-то.
-            if (isCheckSkipOn && Regex.IsMatch(textLine, _tableDetector.DetectFeatures.LineSkipPattern))
+            if (isCheckSkipOn && Regex.IsMatch(textLine, TableDetector.DetectFeatures.LineSkipPattern))
             {
                 return Enumerable.Repeat("", beginColumnIndexes.Length).ToArray();
             }
@@ -388,9 +398,9 @@ namespace ELMA.RPA.Scripts
         /// <returns></returns>
         private bool IsBeginNewTableRow(string[] row)
         {
-            return string.IsNullOrWhiteSpace(_tableDetector.DetectFeatures.FirstBodyRowCellWordPattern)
+            return string.IsNullOrWhiteSpace(TableDetector.DetectFeatures.FirstBodyRowCellWordPattern)
                 ? !string.IsNullOrWhiteSpace(row[0])
-                : Regex.IsMatch(row[0], _tableDetector.DetectFeatures.FirstBodyRowCellWordPattern);
+                : Regex.IsMatch(row[0], TableDetector.DetectFeatures.FirstBodyRowCellWordPattern);
         }
 
         /// <summary>
