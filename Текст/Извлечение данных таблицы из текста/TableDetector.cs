@@ -261,6 +261,8 @@ namespace ELMA.RPA.Scripts
                 }
                 else if (!IsValidRow(textLine, lastIndexes.BeginColumnIndexes))
                 {
+                    // Вычитаем лишнее не валидное
+                    currentIndex -= (textLine.Length + Environment.NewLine.Length);
                     break;
                 }
             }
@@ -409,6 +411,9 @@ namespace ELMA.RPA.Scripts
                 beginColumnIndexes = DetectBeginColumnIndexes(text, ref currentIndex);
                 if (beginColumnIndexes.Length == originBeginColumnIndexes.Length)
                 {
+                    // Найден предположительно.
+                    // TODO: Тут потом можно еще всякие проверочки добавить.
+                    // А еще может быть ситуация когда количество столбцов изначально может быть некорректным.
                     break;
                 }
             }

@@ -82,7 +82,7 @@ namespace Tests
             Assert.AreEqual(lastCharIndex, text.Length);
 
             string preText = "Bla-bla-bla!" + Environment.NewLine;
-            text = preText + text + Environment.NewLine + "Bla-bla-bla!";
+            text = preText + text + "Bla-bla-bla!";
             tableDetector = new(tableDetectFeatures);
 
             start = Stopwatch.GetTimestamp();
@@ -93,8 +93,16 @@ namespace Tests
             int firstCharIndex2 = tableParameters.FirstCharIndex;
             int lastCharIndex2 = tableParameters.LastCharIndex;
 
-            Assert.AreEqual(firstCharIndex2 - preText.Length, firstCharIndex);
-            Assert.AreEqual(lastCharIndex2 - preText.Length - Environment.NewLine.Length, lastCharIndex);
+            // Тут считаем отклонение в размере префиксного текста.
+            int char1 = firstCharIndex2 - preText.Length;
+            // Тут берм следующий индекс, т.к. сейчас последний индекст таблицы должен быть.
+            int char2 = lastCharIndex2 + 1;
+
+            // Вычитаем кол-во символов перехода на новую строку, т.к. мы переносили перед таблицей.
+            string testSubtext1 = text[char1..(firstCharIndex2 - Environment.NewLine.Length)];
+            string testSubtext2 = text[char2..];
+
+            Assert.AreEqual(testSubtext1, testSubtext2);
 
             tokenSource.Cancel();
 
@@ -111,7 +119,6 @@ namespace Tests
             int lastCharIndex = tableParameters.Value.LastCharIndex;
             Assert.AreEqual(sampleText1[firstCharIndex], '№');
 
-            // TODO
             int[] beginColumnIndexes = tableParameters.Value.BeginColumnIndexesItems[0].BeginColumnIndexes;
             Assert.AreEqual(beginColumnIndexes.Length, 4);
 
@@ -176,7 +183,7 @@ namespace Tests
         private string GenerateTextWithTable()
         {
             StringBuilder builder = new();
-            const int rowsCount = 10000;
+            const int rowsCount = 1000;
             const int columnsCount = 1000;
             int cellLength = (int)Math.Log10(columnsCount) + 1;
             GenerateHeader(builder, rowsCount, columnsCount, cellLength);

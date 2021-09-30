@@ -238,11 +238,13 @@ namespace ELMA.RPA.Scripts
         {
             bool isCheckSkipOn = !string.IsNullOrWhiteSpace(TableDetector.DetectFeatures.LineSkipPattern);
             int currentIndex = tableParameters.FirstCharIndex;
+            // Нужно ревертнуть для корректного поиска, ну и за одно отсортирруем на всякий случай.
+            var beginColumnIndexesItems = tableParameters.BeginColumnIndexesItems.OrderByDescending(x => x.TextBeginCharIndex).ToList();
 
             List<string[]> dataList = new();
             while (currentIndex < tableParameters.LastCharIndex)
             {
-                var currentIndexes = tableParameters.BeginColumnIndexesItems.Find(x => currentIndex >= x.TextBeginCharIndex);
+                var currentIndexes = beginColumnIndexesItems.Find(x => currentIndex >= x.TextBeginCharIndex);
                 string[] tempRow = GetNextRowCells(text, currentIndexes.BeginColumnIndexes, isCheckSkipOn, ref currentIndex);
                 if (IsEmptyRow(tempRow))
                 {
