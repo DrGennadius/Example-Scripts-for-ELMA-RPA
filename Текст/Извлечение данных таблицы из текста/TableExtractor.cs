@@ -105,12 +105,12 @@ namespace ELMA.RPA.Scripts
         {
             bool isSucces = true;
 
-            if (tableParameters.BeginColumnIndexesItems.Count == 0)
+            if (tableParameters.RowInfoItems.Count == 0)
             {
                 return false;
             }
 
-            int columnsLength = tableParameters.BeginColumnIndexesItems[0].BeginColumnIndexes.Length;
+            int columnsLength = tableParameters.RowInfoItems[0].BeginColumnIndexes.Length;
 
             string[][] rawData = GetRawTableData(text, tableParameters);
             if (rawData.Length == 0 || rawData[0].Length == 0)
@@ -146,7 +146,7 @@ namespace ELMA.RPA.Scripts
                                 tempRow[k] += rawData[i][rawColumnIndex].Trim() + ' ';
                             }
                         }
-                        if (IsBeginNewTableRow(tempRow) && !IsEmptyRow(row))
+                        if (IsBeginNewTableRow(tempRow) && !CommonTableHelper.IsEmptyRow(row))
                         {
                             dataList.Add(row);
                             row = tempRow;
@@ -166,7 +166,7 @@ namespace ELMA.RPA.Scripts
                 row = Enumerable.Repeat("", rawData[0].Length).ToArray();
                 foreach (var rawRow in rawData)
                 {
-                    if (IsBeginNewTableRow(rawRow) && !IsEmptyRow(row))
+                    if (IsBeginNewTableRow(rawRow) && !CommonTableHelper.IsEmptyRow(row))
                     {
                         dataList.Add(row);
                         row = rawRow;
@@ -179,7 +179,7 @@ namespace ELMA.RPA.Scripts
                     }
                 }
             }
-            if (!IsEmptyRow(row))
+            if (!CommonTableHelper.IsEmptyRow(row))
             {
                 dataList.Add(row);
             }
@@ -239,14 +239,14 @@ namespace ELMA.RPA.Scripts
             bool isCheckSkipOn = !string.IsNullOrWhiteSpace(TableDetector.DetectFeatures.LineSkipPattern);
             int currentIndex = tableParameters.FirstCharIndex;
             // Нужно ревертнуть для корректного поиска, ну и за одно отсортирруем на всякий случай.
-            var beginColumnIndexesItems = tableParameters.BeginColumnIndexesItems.OrderByDescending(x => x.TextBeginCharIndex).ToList();
+            var beginColumnIndexesItems = tableParameters.RowInfoItems.OrderByDescending(x => x.TextBeginCharIndex).ToList();
 
             List<string[]> dataList = new();
             while (currentIndex < tableParameters.LastCharIndex)
             {
                 var currentIndexes = beginColumnIndexesItems.Find(x => currentIndex >= x.TextBeginCharIndex);
                 string[] tempRow = GetNextRowCells(text, currentIndexes.BeginColumnIndexes, isCheckSkipOn, ref currentIndex);
-                if (IsEmptyRow(tempRow))
+                if (CommonTableHelper.IsEmptyRow(tempRow))
                 {
                     continue;
                 }
@@ -367,30 +367,6 @@ namespace ELMA.RPA.Scripts
             }
 
             return commonRow;
-        }
-
-        /// <summary>
-        /// Это пустая строка.
-        /// </summary>
-        /// <param name="row"></param>
-        /// <returns></returns>
-        private bool IsEmptyRow(string[] row)
-        {
-            bool isEmpty = true;
-
-            if (row.Length > 0)
-            {
-                foreach (var item in row)
-                {
-                    if (!string.IsNullOrWhiteSpace(item))
-                    {
-                        isEmpty = false;
-                        break;
-                    }
-                }
-            }
-
-            return isEmpty;
         }
 
         /// <summary>

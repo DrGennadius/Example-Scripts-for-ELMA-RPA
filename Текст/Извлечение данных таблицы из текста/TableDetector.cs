@@ -10,7 +10,10 @@ namespace ELMA.RPA.Scripts
     /// </summary>
     public class TableDetector
     {
-        public TableFeatures DetectFeatures { get; set; }
+        private const double NullСontinuousBodyRowCellTextK = 0.5;
+        private const double NullRowCellK = 1.0;
+        private const double ApplyRowPatternK = 0.25;
+        private const double CommonSimilarRowMinK = 0.5;
 
         public TableDetector() { }
 
@@ -18,6 +21,11 @@ namespace ELMA.RPA.Scripts
         {
             DetectFeatures = detectFeatures;
         }
+
+        /// <summary>
+        /// Признаки определения таблицы.
+        /// </summary>
+        public TableFeatures DetectFeatures { get; set; }
 
         /// <summary>
         /// Определение таблицы.
@@ -207,7 +215,8 @@ namespace ELMA.RPA.Scripts
                 beginIndexes = beginIndexes.SkipLast(1).ToArray();
             }
             // В самом начале еще вставляем самый первый индекс.
-            return (new int[] { 0 }).Concat(beginIndexes).ToArray();
+            beginIndexes = (new int[] { 0 }).Concat(beginIndexes).ToArray();
+            return beginIndexes;
         }
 
         /// <summary>
@@ -218,16 +227,20 @@ namespace ELMA.RPA.Scripts
         /// <param name="currentIndex"></param>
         /// <param name="beginColumnIndexes"></param>
         /// <returns>Полный массив начал строк.</returns>
-        private List<BeginColumnIndexesItem> PassToEndTable(string text, int startIndex, ref int currentIndex, int[] beginColumnIndexes)
+        private List<RowInfoItem> PassToEndTable(string text, int startIndex, ref int currentIndex, int[] beginColumnIndexes)
         {
 #if DEBUG
             char debugBeginChar = text[currentIndex];
 #endif
             bool isCheckSkipOn = !string.IsNullOrWhiteSpace(DetectFeatures.LineSkipPattern);
-            BeginColumnIndexesItem lastIndexes = new(startIndex, beginColumnIndexes);
-            List<BeginColumnIndexesItem> fullBeginColumnIndexes = new();
-            fullBeginColumnIndexes.Add(lastIndexes);
+            RowInfoItem prevLastRowInfoItem = null;
+            RowInfoItem lastRowInfoItem = new(startIndex, beginColumnIndexes);
+            RowInfoItem newRowInfoItem = null;
+            List<RowInfoItem> fullRowInfoItems = new();
+            fullRowInfoItems.Add(lastRowInfoItem);
             string textLine = "";
+            int emptyLineCount = 0;
+            bool isSkipping = false;
             while (currentIndex < text.Length)
             {
                 int endLineIndex = text.IndexOf(Environment.NewLine, currentIndex);
@@ -241,67 +254,146 @@ namespace ELMA.RPA.Scripts
                     endLineIndex = text.Length - 1;
                     textLine = text[currentIndex..];
                 }
-                // Устанавливаем следующий индекс начала следующим после конца этой строки.
-                currentIndex = endLineIndex + Environment.NewLine.Length;
-
-                bool isSkip = isCheckSkipOn && Regex.IsMatch(textLine, DetectFeatures.LineSkipPattern);
-
-                if (isSkip)
+                if (string.IsNullOrWhiteSpace(textLine))
                 {
-                    var newBeginColumnIndexes = CalcNewBeginColumnIndexesVariant(text, beginColumnIndexes, ref currentIndex);
-                    if (newBeginColumnIndexes.TextBeginCharIndex == -1 || newBeginColumnIndexes.BeginColumnIndexes.Length == 0)
+                    // Устанавливаем следующий индекс начала следующим после конца этой строки.
+                    currentIndex += Environment.NewLine.Length;
+                    emptyLineCount++;
+                    continue;
+                }
+                emptyLineCount = 0;
+
+                bool isSkipNow = isCheckSkipOn && Regex.IsMatch(textLine, DetectFeatures.LineSkipPattern);
+
+                if (!isSkipNow)
+                {
+                    if (isSkipping)
                     {
-                        break;
+                        newRowInfoItem = CalcNewRowInfoItemVariant(text, lastRowInfoItem, currentIndex);
+                        if (newRowInfoItem.TextBeginCharIndex == -1 || newRowInfoItem.BeginColumnIndexes.Length == 0)
+                        {
+                            break;
+                        }
+                        if (CommonTableHelper.IsEmptyRow(lastRowInfoItem.СontinuousBodyRowCellTexts))
+                        {
+                            CalcBodyRowFeaturesForce(text, lastRowInfoItem, currentIndex);
+                        }
+                        lastRowInfoItem.GenerateBodyRowPattern();
+                        prevLastRowInfoItem = lastRowInfoItem;
+                        lastRowInfoItem = newRowInfoItem;
+                        fullRowInfoItems.Add(lastRowInfoItem);
+                    }
+                    var result = ValidationRow(textLine, prevLastRowInfoItem, lastRowInfoItem);
+                    if (result.IsValid)
+                    {
+#if DEBUG
+                        if (newRowInfoItem != null)
+                        {
+                            string debugPartOfText = "";
+                            int debugEndLineIndex = text.IndexOf(Environment.NewLine, newRowInfoItem.TextBeginCharIndex);
+                            if (debugEndLineIndex >= 0)
+                            {
+                                debugPartOfText = text[newRowInfoItem.TextBeginCharIndex..debugEndLineIndex];
+                            }
+                            else
+                            {
+                                // Берем последний символ, если не найден перенос.
+                                debugEndLineIndex = text.Length - 1;
+                                debugPartOfText = text[newRowInfoItem.TextBeginCharIndex..];
+                            }
+                            if (!string.IsNullOrWhiteSpace(debugPartOfText))
+                            {
+                                string[] debugCells = GetRowCellsForce(debugPartOfText, newRowInfoItem);
+                            }
+                        }
+#endif
+                        if (result.CorrectRowInfo != null && result.CorrectRowInfo.IsAutoCorrected)
+                        {
+                            lastRowInfoItem = result.CorrectRowInfo.NewRowInfoItem;
+                        }
+                        // Копим признаки для дальнейшего сравнения.
+                        CalcBodyRowFeatures(textLine, lastRowInfoItem);
                     }
                     else
                     {
-                        lastIndexes = newBeginColumnIndexes;
-                        fullBeginColumnIndexes.Add(newBeginColumnIndexes);
+                        break;
                     }
                 }
-                else if (!IsValidRow(textLine, lastIndexes.BeginColumnIndexes))
-                {
-                    // Вычитаем лишнее не валидное
-                    currentIndex -= (textLine.Length + Environment.NewLine.Length);
-                    break;
-                }
+                // Устанавливаем следующий индекс начала следующим после конца этой строки.
+                currentIndex = endLineIndex + Environment.NewLine.Length;
+                emptyLineCount++;
+                isSkipping = isSkipNow;
             }
 
-            return fullBeginColumnIndexes;
+            // Компенсируем переход на пустые строки в конце.
+            int dropEndChars = Environment.NewLine.Length * emptyLineCount;
+            if (dropEndChars > 0)
+            {
+                currentIndex -= dropEndChars;
+            }
+
+            return fullRowInfoItems;
         }
 
         /// <summary>
         /// Это валидная строка?
         /// </summary>
         /// <param name="textLine"></param>
-        /// <param name="beginColumnIndexes"></param>
+        /// <param name="prevRowInfoItem"></param>
+        /// <param name="rowInfoItem"></param>
         /// <returns></returns>
-        private bool IsValidRow(string textLine, int[] beginColumnIndexes)
+        private ValidationRowResult ValidationRow(string textLine, RowInfoItem prevRowInfoItem, RowInfoItem rowInfoItem)
         {
+            ValidationRowResult result = new()
+            {
+                IsValid = false
+            };
+
             if (textLine == "")
             {
                 // Пропускаем.
                 // Дело в том, что у нас может быть текст, в котором есть пустые строки.
-                return true;
+                result.IsValid = true;
+                return result;
             }
-            if (string.IsNullOrWhiteSpace(textLine) || beginColumnIndexes.Length <= 0)
+            if (string.IsNullOrWhiteSpace(textLine) || rowInfoItem.BeginColumnIndexes.Length <= 0)
             {
-                return false;
+                return result;
             }
-            if (beginColumnIndexes.Length == 1)
+            if (rowInfoItem.BeginColumnIndexes.Length == 1)
             {
-                return true;
+                result.IsValid = true;
+                return result;
             }
 
-            bool isValid = IsValidRowBase(textLine, beginColumnIndexes);
+            bool isValid = IsValidRowBase(textLine, rowInfoItem.BeginColumnIndexes);
+            // prevRowInfoItem для случаев, если после разреза страницы сразу же
+            // какой-нибудь косяк и можно было бы проверить по сохраненным данным с прошлой страницы.
+            bool isUsePrevRowInfoItem = rowInfoItem == null
+                || (string.IsNullOrWhiteSpace(rowInfoItem.BodyRowPattern)
+                && CommonTableHelper.IsEmptyRow(rowInfoItem.СontinuousBodyRowCellTexts));
+            RowInfoItem tragetRowInfoItem = isUsePrevRowInfoItem 
+                ? prevRowInfoItem
+                : rowInfoItem;
+            if (!isValid
+                && tragetRowInfoItem != null
+                && (!string.IsNullOrWhiteSpace(tragetRowInfoItem.BodyRowPattern)
+                || !CommonTableHelper.IsEmptyRow(tragetRowInfoItem.СontinuousBodyRowCellTexts)))
+            {
+                // Перепроверяем с неопределенной увереностью, что строка всё таки может быть валидной.
+                CorrectRowInfoItem correctRowInfoItem = CorrectRowInfo(textLine, tragetRowInfoItem, isUsePrevRowInfoItem);
+                isValid = correctRowInfoItem.IsValid;
+                result.CorrectRowInfo = correctRowInfoItem;
+            }
 
             if (isValid && DetectFeatures.HasStartSequentialNumberingCells)
             {
                 // Дополнительная проверка нумерации.
-                isValid = IsValidRowWithNumberingStart(textLine, beginColumnIndexes);
+                isValid = IsValidRowWithNumberingStart(textLine, rowInfoItem.BeginColumnIndexes);
             }
 
-            return isValid;
+            result.IsValid = isValid;
+            return result;
         }
 
         /// <summary>
@@ -361,6 +453,7 @@ namespace ELMA.RPA.Scripts
             var elements = Regex.Split(subText, DetectFeatures.SplitPattern);
             if (!((elements.Length == 2 && elements[1] == "") || (elements.Length == 1 && endIndex == textLine.Length - 1)))
             {
+                // TODO: Можно какую-нибудь нечеткую проверку добавить с предыдущими строками.
                 return false;
             }
             return true;
@@ -398,27 +491,504 @@ namespace ELMA.RPA.Scripts
         /// </summary>
         /// <param name="text"></param>
         /// <param name="currentIndex"></param>
-        /// <param name="originBeginColumnIndexes"></param>
+        /// <param name="lastRowInfoItem"></param>
         /// <returns></returns>
-        private BeginColumnIndexesItem CalcNewBeginColumnIndexesVariant(string text, int[] originBeginColumnIndexes, ref int currentIndex)
+        private RowInfoItem CalcNewRowInfoItemVariant(string text, RowInfoItem lastRowInfoItem, int currentIndex)
         {
             int[] beginColumnIndexes = Array.Empty<int>();
-            int storedIndex = -1;
+            RowInfoItem rowInfoItem = new(currentIndex, beginColumnIndexes);
 
             while (currentIndex < text.Length)
             {
-                storedIndex = currentIndex;
                 beginColumnIndexes = DetectBeginColumnIndexes(text, ref currentIndex);
-                if (beginColumnIndexes.Length == originBeginColumnIndexes.Length)
+                if (beginColumnIndexes.Length == lastRowInfoItem.BeginColumnIndexes.Length)
                 {
                     // Найден предположительно.
                     // TODO: Тут потом можно еще всякие проверочки добавить.
                     // А еще может быть ситуация когда количество столбцов изначально может быть некорректным.
+                    rowInfoItem.BeginColumnIndexes = beginColumnIndexes;
+                    rowInfoItem.СontinuousBodyRowCellTexts = Enumerable.Repeat("", beginColumnIndexes.Length).ToArray();
                     break;
                 }
             }
 
-            return new(storedIndex, beginColumnIndexes);
+            return rowInfoItem;
+        }
+
+        /// <summary>
+        /// Намерено расчитать признаки строки тела таблицы по тому, что есть.
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="rowInfoItem"></param>
+        /// <param name="allowOverBoundAsEmpty"></param>
+        private void CalcBodyRowFeaturesForce(string text, RowInfoItem rowInfoItem, int limitIndex)
+        {
+            bool isCheckSkipOn = !string.IsNullOrWhiteSpace(DetectFeatures.LineSkipPattern);
+            int currentIndex = rowInfoItem.TextBeginCharIndex;
+            string textLine = "";
+            int endLineIndex = text.IndexOf(Environment.NewLine, currentIndex);
+            if (endLineIndex >= 0)
+            {
+                textLine = text[currentIndex..endLineIndex];
+            }
+            else
+            {
+                // Берем последний символ, если не найден перенос.
+                endLineIndex = text.Length - 1;
+                textLine = text[currentIndex..];
+            }
+            // Устанавливаем следующий индекс начала следующим после конца этой строки.
+            currentIndex = endLineIndex + Environment.NewLine.Length;
+            while (currentIndex < limitIndex)
+            {
+                endLineIndex = text.IndexOf(Environment.NewLine, currentIndex);
+                if (endLineIndex >= 0)
+                {
+                    textLine = text[currentIndex..endLineIndex];
+                }
+                else
+                {
+                    // Берем последний символ, если не найден перенос.
+                    endLineIndex = text.Length - 1;
+                    textLine = text[currentIndex..];
+                }
+                // Устанавливаем следующий индекс начала следующим после конца этой строки.
+                currentIndex = endLineIndex + Environment.NewLine.Length;
+                if (string.IsNullOrWhiteSpace(textLine))
+                {
+                    continue;
+                }
+
+                bool isSkipNow = isCheckSkipOn && Regex.IsMatch(textLine, DetectFeatures.LineSkipPattern);
+
+                if (!isSkipNow)
+                {
+                    CalcBodyRowFeatures(textLine, rowInfoItem, true);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Расчитать признаки строки тела таблицы.
+        /// По факту пока расчитывается по строке, которая имеет вхождениие в диапазон начальных индексов.
+        /// </summary>
+        /// <param name="subText"></param>
+        /// <param name="rowInfoItem"></param>
+        /// <param name="allowOverBoundAsEmpty"></param>
+        private void CalcBodyRowFeatures(string subText, RowInfoItem rowInfoItem, bool allowOverBoundAsEmpty = false)
+        {
+            if (string.IsNullOrWhiteSpace(subText))
+            {
+                return;
+            }
+
+            int startIndex = -1;
+            int endIndex = -1;
+            string[] cells = new string[rowInfoItem.BeginColumnIndexes.Length];
+            for (int i = 0; i < rowInfoItem.BeginColumnIndexes.Length - 1; i++)
+            {
+                startIndex = rowInfoItem.BeginColumnIndexes[i];
+                endIndex = rowInfoItem.BeginColumnIndexes[i + 1] - 1;
+                if (allowOverBoundAsEmpty)
+                {
+                    if (startIndex >= subText.Length)
+                    {
+                        cells[i] = "";
+                    }
+                    else if(endIndex >= subText.Length)
+                    {
+                        cells[i] = subText[rowInfoItem.BeginColumnIndexes[i]..];
+                    }
+                    else
+                    {
+                        cells[i] = subText[rowInfoItem.BeginColumnIndexes[i]..(rowInfoItem.BeginColumnIndexes[i + 1] - 1)];
+                    }
+                }
+                else if (startIndex >= subText.Length || endIndex >= subText.Length)
+                {
+                    return;
+                }
+                else
+                {
+                    cells[i] = subText[rowInfoItem.BeginColumnIndexes[i]..(rowInfoItem.BeginColumnIndexes[i + 1] - 1)];
+                }
+            }
+            startIndex = rowInfoItem.BeginColumnIndexes[^1];
+            if (allowOverBoundAsEmpty)
+            {
+                if (startIndex >= subText.Length)
+                {
+                    cells[^1] = "";
+                }
+                else
+                {
+                    cells[^1] = subText[rowInfoItem.BeginColumnIndexes[^1]..];
+                }
+            }
+            else if (startIndex >= subText.Length || endIndex >= subText.Length)
+            {
+                return;
+            }
+            else
+            {
+                cells[^1] = subText[rowInfoItem.BeginColumnIndexes[^1]..];
+            }
+            cells = cells.Select(x => GetPrimitiveCellText(x)).ToArray();
+
+            for (int i = 0; i < cells.Length; i++)
+            {
+                string continuousCellText = GetСontinuousCellText(rowInfoItem.СontinuousBodyRowCellTexts[i], cells[i]);
+                rowInfoItem.СontinuousBodyRowCellTexts[i] = continuousCellText;
+            }
+        }
+
+        /// <summary>
+        /// Получить примитивный текст. На текущий момент только заменяет числа на 0.
+        /// </summary>
+        /// <param name="text"></param>
+        /// <returns></returns>
+        private string GetPrimitiveCellText(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return text;
+            }
+
+            char[] result = text.ToArray();
+
+            for (int i = 0; i < text.Length; i++)
+            {
+                if (char.IsDigit(text[i]))
+                {
+                    result[i] = '0';
+                }
+            }
+
+            return new string(result);
+        }
+
+        /// <summary>
+        /// Получить продолжающий текст. Т.е. 
+        /// Оставляет общие символы двух строк.
+        /// Т.е. по факту работает как пересечение массивов символов, 
+        /// но при этом вставляет пустые символы в местах различий.
+        /// </summary>
+        /// <param name="text1"></param>
+        /// <param name="text2"></param>
+        /// <returns></returns>
+        private string GetСontinuousCellText(string text1, string text2)
+        {
+            if (string.IsNullOrWhiteSpace(text1) && string.IsNullOrWhiteSpace(text2))
+            {
+                return "";
+            }
+            if (string.IsNullOrWhiteSpace(text1))
+            {
+                return text2;
+            }
+            if (string.IsNullOrWhiteSpace(text2))
+            {
+                return text1;
+            }
+
+            char[] charArray1 = text1.ToArray();
+            char[] charArray2 = text2.ToArray();
+
+            int len1 = charArray1.Length;
+            int len2 = charArray2.Length;
+
+            int lenDiff = len2 - len1;
+
+            if (lenDiff >= 0)
+            {
+                for (int i = 0; i < len1; i++)
+                {
+                    if (charArray1[i] != charArray2[i])
+                    {
+                        charArray2[i] = ' ';
+                    }
+                }
+                for (int i = len1; i < len1 + lenDiff; i++)
+                {
+                    charArray2[i] = ' ';
+                }
+                return new string(charArray2);
+            }
+            else
+            {
+                for (int i = 0; i < len2; i++)
+                {
+                    if (charArray2[i] != charArray1[i])
+                    {
+                        charArray1[i] = ' ';
+                    }
+                }
+                for (int i = len2; i < len2 - lenDiff; i++)
+                {
+                    charArray1[i] = ' ';
+                }
+                return new string(charArray1);
+            }
+        }
+
+        /// <summary>
+        /// Это может быть валидная строка, либо исправленная?
+        /// </summary>
+        /// <param name="rowText"></param>
+        /// <param name="rowInfoItem"></param>
+        /// <param name="isUsePrevRowInfoItem"></param>
+        /// <returns></returns>
+        private CorrectRowInfoItem CorrectRowInfo(string rowText, RowInfoItem rowInfoItem, bool isUsePrevRowInfoItem)
+        {
+            CorrectRowInfoItem correctRowInfoItem = new()
+            {
+                OriginRowInfoItem = rowInfoItem
+            };
+            // 1. Первым делом проверим строку по паттерну.
+            double applyPatternK = 0.0;
+            if (!string.IsNullOrWhiteSpace(rowInfoItem.BodyRowPattern) 
+                && Regex.IsMatch(rowText, rowInfoItem.BodyRowPattern))
+            {
+                applyPatternK = ApplyRowPatternK;
+            }
+            // 2. Считаем схожесть по продолжительным символам.
+            double similarRowK = 0.0;
+            if (!CommonTableHelper.IsEmptyRow(rowInfoItem.СontinuousBodyRowCellTexts))
+            {
+                if (isUsePrevRowInfoItem)
+                {
+                    correctRowInfoItem = AutoCorrectRowInfo(rowText, rowInfoItem, correctRowInfoItem);
+                    similarRowK = correctRowInfoItem.SimilarCoef;
+                }
+                else
+                {
+                    similarRowK = CalcSimilarRowK(rowText, rowInfoItem);
+                    correctRowInfoItem.SimilarCoef = similarRowK;
+                }
+            }
+
+            double k = (applyPatternK + similarRowK) / 2;
+            correctRowInfoItem.IsValid = k >= CommonSimilarRowMinK;
+
+            if (correctRowInfoItem.IsAutoCorrected)
+            {
+                correctRowInfoItem.NewRowInfoItem.TextBeginCharIndex = rowInfoItem.TextBeginCharIndex;
+            }
+
+            return correctRowInfoItem;
+        }
+
+        /// <summary>
+        /// Посчитать коэфицент схожести строки.
+        /// </summary>
+        /// <param name="rowText"></param>
+        /// <param name="rowInfoItem"></param>
+        /// <param name="isUsePrevRowInfoItem"></param>
+        /// <param name="newRowInfoItem"></param>
+        /// <returns></returns>
+        private double CalcSimilarRowK(string rowText, RowInfoItem rowInfoItem)
+        {
+            string[] rowCells = GetRowCellsForce(rowText, rowInfoItem);
+
+            return CalcSimilarRowK(rowCells, rowInfoItem.СontinuousBodyRowCellTexts);
+        }
+
+        /// <summary>
+        /// Посчитать коэфицент схожести строки.
+        /// </summary>
+        /// <param name="rowCells"></param>
+        /// <param name="continuousBodyRowCellTexts"></param>
+        /// <returns></returns>
+        private double CalcSimilarRowK(string[] rowCells, string[] continuousBodyRowCellTexts)
+        {
+            double k = 0.0;            
+
+            if (continuousBodyRowCellTexts.Length > 0)
+            {
+                for (int i = 0; i < continuousBodyRowCellTexts.Length; i++)
+                {
+                    if (string.IsNullOrWhiteSpace(continuousBodyRowCellTexts[i]))
+                    {
+                        k += NullСontinuousBodyRowCellTextK;
+                    }
+                    if (string.IsNullOrWhiteSpace(rowCells[i]))
+                    {
+                        k += NullRowCellK;
+                    }
+                    else
+                    {
+                        int maxLen = Math.Max(rowCells[i].Length, continuousBodyRowCellTexts[i].Length);
+                        int d = LevenshteinHelper.GetDistance(rowCells[i], continuousBodyRowCellTexts[i]);
+                        k += ((double)(maxLen - d)) / maxLen;
+                    }
+                }
+
+                k /= continuousBodyRowCellTexts.Length;
+            }
+
+            return k;
+        }
+
+        /// <summary>
+        /// Получить в любом случае ячейки строки, пусть они и пустые будут.
+        /// </summary>
+        /// <param name="rowText"></param>
+        /// <param name="beginColumnIndexes"></param>
+        /// <returns></returns>
+        private string[] GetRowCellsForce(string rowText, int[] beginColumnIndexes)
+        {
+            int startIndex = -1;
+            int endIndex = -1;
+            string[] cells = new string[beginColumnIndexes.Length];
+            for (int i = 0; i < beginColumnIndexes.Length - 1; i++)
+            {
+                startIndex = beginColumnIndexes[i];
+                endIndex = beginColumnIndexes[i + 1] - 1;
+                if (startIndex >= rowText.Length)
+                {
+                    cells[i] = "";
+                }
+                else if (endIndex >= rowText.Length)
+                {
+                    cells[i] = rowText[beginColumnIndexes[i]..];
+                }
+                else
+                {
+                    cells[i] = rowText[beginColumnIndexes[i]..(beginColumnIndexes[i + 1] - 1)];
+                }
+            }
+            startIndex = beginColumnIndexes[^1];
+            if (startIndex >= rowText.Length)
+            {
+                cells[^1] = "";
+            }
+            else
+            {
+                cells[^1] = rowText[beginColumnIndexes[^1]..];
+            }
+            return cells;
+        }
+
+        /// <summary>
+        /// Получить в любом случае ячейки строки, пусть они и пустые будут.
+        /// </summary>
+        /// <param name="rowText"></param>
+        /// <param name="rowInfoItem"></param>
+        /// <returns></returns>
+        private string[] GetRowCellsForce(string rowText, RowInfoItem rowInfoItem)
+        {
+            return GetRowCellsForce(rowText, rowInfoItem.BeginColumnIndexes);
+        }
+
+        /// <summary>
+        /// Автоматическое определение ячеек и создание новой информации о строке.
+        /// </summary>
+        /// <param name="rowText"></param>
+        /// <param name="rowInfoItem"></param>
+        /// <param name="correctRowInfoItem"></param>
+        /// <returns></returns>
+        private CorrectRowInfoItem AutoCorrectRowInfo(string rowText, RowInfoItem rowInfoItem, CorrectRowInfoItem correctRowInfoItem)
+        {
+            double k = 0.0;
+
+            // Сначала пробуем харкорное обычное
+            string[] cells = GetRowCellsForce(rowText, rowInfoItem);
+
+            // Проверяем немного
+            bool isOk = true;
+
+            // Примитивная проверка на то, что первые символы не пробелы в значимых ячейках.
+            foreach (var cell in cells)
+            {
+                if (!string.IsNullOrWhiteSpace(cell) && cell[0] == ' ')
+                {
+                    isOk = false;
+                    break;
+                }
+            }
+
+            if (isOk)
+            {
+                k = CalcSimilarRowK(cells.Select(x => GetPrimitiveCellText(x)).ToArray(), rowInfoItem.СontinuousBodyRowCellTexts);
+            }
+            CorrectRowInfoItem autoCorrectRowInfoItem = GetAutoDetectRowCellsAutoAndCreateNewRowInfo(rowText, rowInfoItem, correctRowInfoItem);
+            if (autoCorrectRowInfoItem.SimilarCoef > k)
+            {
+                correctRowInfoItem = autoCorrectRowInfoItem;
+                // * 2 для увеличения шансов при автоматическом режиме.
+                correctRowInfoItem.SimilarCoef *= 2;
+            }
+            else
+            {
+                correctRowInfoItem.SimilarCoef = k;
+            }
+
+            return correctRowInfoItem;
+        }
+
+        /// <summary>
+        /// Автоопределение ячеек и новых данных о строке.
+        /// </summary>
+        /// <param name="rowText"></param>
+        /// <param name="rowInfoItem"></param>
+        /// <param name="correctRowInfoItem"></param>
+        /// <returns></returns>
+        private CorrectRowInfoItem GetAutoDetectRowCellsAutoAndCreateNewRowInfo(string rowText, RowInfoItem rowInfoItem, CorrectRowInfoItem correctRowInfoItem)
+        {
+            RowInfoItem newRowInfoItem = null;
+
+            string[] cells = Enumerable.Repeat("", rowInfoItem.BeginColumnIndexes.Length).ToArray();
+
+            int currentIndex = 0;
+            int[] defaultBeginColumnIndexes = DetectBeginColumnIndexes(rowText, ref currentIndex);
+
+            int diffLen = defaultBeginColumnIndexes.Length - rowInfoItem.BeginColumnIndexes.Length;
+
+            double bestK = 0.0;
+            int[] bestBeginIndexesArray = Array.Empty<int>();
+
+            if (diffLen == 1)
+            {
+                newRowInfoItem = new RowInfoItem(rowInfoItem);
+                List<int> tempBeginIndexes = new();
+                for (int m = 1; m < defaultBeginColumnIndexes.Length - 1; m++)
+                {
+                    tempBeginIndexes.Clear();
+                    // m - индекс мержа
+                    for (int i = 0; i < defaultBeginColumnIndexes.Length; i++)
+                    {
+                        if (i == m)
+                        {
+                            continue;
+                        }
+                        tempBeginIndexes.Add(defaultBeginColumnIndexes[i]);
+                    }
+                    int[] tempBeginIndexesArray = tempBeginIndexes.ToArray();
+                    string[] tempCells = GetRowCellsForce(rowText, tempBeginIndexesArray);
+                    // TODO: Надо бы хранить где-то схожесть, чтобы потом не пересчитывать по новой.
+                    double tempK = CalcSimilarRowK(
+                        tempCells.Select(x => GetPrimitiveCellText(x)).ToArray(), 
+                        rowInfoItem.СontinuousBodyRowCellTexts);
+                    if (tempK > bestK)
+                    {
+                        bestK = tempK;
+                        bestBeginIndexesArray = tempBeginIndexesArray;
+                        cells = tempCells;
+                    }
+                }
+            }
+
+            if (correctRowInfoItem == null)
+            {
+                correctRowInfoItem = new()
+                {
+                    OriginRowInfoItem = rowInfoItem
+                };
+            }
+            correctRowInfoItem.NewRowInfoItem = rowInfoItem;
+            correctRowInfoItem.SimilarCoef = bestK;
+
+            return correctRowInfoItem;
         }
     }
 }

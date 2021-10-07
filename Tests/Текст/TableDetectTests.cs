@@ -42,11 +42,11 @@ namespace Tests
 
             Assert.AreEqual(tableParameters1.FirstCharIndex, tableParameters2.FirstCharIndex);
             Assert.AreEqual(tableParameters1.LastCharIndex, tableParameters2.LastCharIndex);
-            Assert.AreEqual(tableParameters1.BeginColumnIndexesItems[0].BeginColumnIndexes.Length, tableParameters2.BeginColumnIndexesItems[0].BeginColumnIndexes.Length);
-            Assert.AreEqual(tableParameters1.BeginColumnIndexesItems[0].BeginColumnIndexes[0], tableParameters2.BeginColumnIndexesItems[0].BeginColumnIndexes[0]);
-            Assert.AreEqual(tableParameters1.BeginColumnIndexesItems[0].BeginColumnIndexes[1], tableParameters2.BeginColumnIndexesItems[0].BeginColumnIndexes[1]);
-            Assert.AreEqual(tableParameters1.BeginColumnIndexesItems[0].BeginColumnIndexes[2], tableParameters2.BeginColumnIndexesItems[0].BeginColumnIndexes[2]);
-            Assert.AreEqual(tableParameters1.BeginColumnIndexesItems[0].BeginColumnIndexes[3], tableParameters2.BeginColumnIndexesItems[0].BeginColumnIndexes[3]);
+            Assert.AreEqual(tableParameters1.RowInfoItems[0].BeginColumnIndexes.Length, tableParameters2.RowInfoItems[0].BeginColumnIndexes.Length);
+            Assert.AreEqual(tableParameters1.RowInfoItems[0].BeginColumnIndexes[0], tableParameters2.RowInfoItems[0].BeginColumnIndexes[0]);
+            Assert.AreEqual(tableParameters1.RowInfoItems[0].BeginColumnIndexes[1], tableParameters2.RowInfoItems[0].BeginColumnIndexes[1]);
+            Assert.AreEqual(tableParameters1.RowInfoItems[0].BeginColumnIndexes[2], tableParameters2.RowInfoItems[0].BeginColumnIndexes[2]);
+            Assert.AreEqual(tableParameters1.RowInfoItems[0].BeginColumnIndexes[3], tableParameters2.RowInfoItems[0].BeginColumnIndexes[3]);
 
             Assert.Pass();
         }
@@ -79,7 +79,25 @@ namespace Tests
             int lastCharIndex = tableParameters.LastCharIndex;
 
             Assert.AreEqual(firstCharIndex, 0);
-            Assert.AreEqual(lastCharIndex, text.Length);
+            // Вычитаем длину Environment.NewLine, т.к. теперь не считается пустая строка вместе с переносом.
+            Assert.AreEqual(lastCharIndex, text.Length - Environment.NewLine.Length);
+
+            text += Environment.NewLine;
+
+            tableDetector = new(tableDetectFeatures);
+
+            start = Stopwatch.GetTimestamp();
+            tableParameters = tableDetector.Detect(text).Value;
+            end = Stopwatch.GetTimestamp();
+            Console.WriteLine($"На повторное обнаруживание таблицы 1 потрачено {end - start} тиков");
+
+            firstCharIndex = tableParameters.FirstCharIndex;
+            int lastCharIndexX = tableParameters.LastCharIndex;
+
+            Assert.AreEqual(firstCharIndex, 0);
+            Assert.AreEqual(lastCharIndex, lastCharIndexX);
+
+            text += Environment.NewLine;
 
             string preText = "Bla-bla-bla!" + Environment.NewLine;
             text = preText + text + "Bla-bla-bla!";
@@ -95,8 +113,10 @@ namespace Tests
 
             // Тут считаем отклонение в размере префиксного текста.
             int char1 = firstCharIndex2 - preText.Length;
-            // Тут берм следующий индекс, т.к. сейчас последний индекст таблицы должен быть.
-            int char2 = lastCharIndex2 + 1;
+            // Тут берем снова просто последний индекс,
+            // т.к. теперь переделано определение таблиц
+            // и добавлена компенсация на переходы на пустые строки в конце.
+            int char2 = lastCharIndex2;
 
             // Вычитаем кол-во символов перехода на новую строку, т.к. мы переносили перед таблицей.
             string testSubtext1 = text[char1..(firstCharIndex2 - Environment.NewLine.Length)];
@@ -119,7 +139,7 @@ namespace Tests
             int lastCharIndex = tableParameters.Value.LastCharIndex;
             Assert.AreEqual(sampleText1[firstCharIndex], '№');
 
-            int[] beginColumnIndexes = tableParameters.Value.BeginColumnIndexesItems[0].BeginColumnIndexes;
+            int[] beginColumnIndexes = tableParameters.Value.RowInfoItems[0].BeginColumnIndexes;
             Assert.AreEqual(beginColumnIndexes.Length, 4);
 
             int[] beginColumnIndexesOffset = beginColumnIndexes.Select(x => x + tableParameters.Value.FirstCharIndex).ToArray();
@@ -154,28 +174,28 @@ namespace Tests
 
             Assert.IsFalse(tableParameters3.HasValue);
 
-            Assert.AreEqual(tableParameters1.BeginColumnIndexesItems[0].BeginColumnIndexes.Length, tableParameters2.BeginColumnIndexesItems[0].BeginColumnIndexes.Length);
-            Assert.AreEqual(tableParameters1.BeginColumnIndexesItems[0].BeginColumnIndexes[0], tableParameters2.BeginColumnIndexesItems[0].BeginColumnIndexes[0]);
-            Assert.AreEqual(tableParameters1.BeginColumnIndexesItems[0].BeginColumnIndexes[1], tableParameters2.BeginColumnIndexesItems[0].BeginColumnIndexes[1]);
-            Assert.AreEqual(tableParameters1.BeginColumnIndexesItems[0].BeginColumnIndexes[2], tableParameters2.BeginColumnIndexesItems[0].BeginColumnIndexes[2]);
-            Assert.AreEqual(tableParameters1.BeginColumnIndexesItems[0].BeginColumnIndexes[3], tableParameters2.BeginColumnIndexesItems[0].BeginColumnIndexes[3]);
+            Assert.AreEqual(tableParameters1.RowInfoItems[0].BeginColumnIndexes.Length, tableParameters2.RowInfoItems[0].BeginColumnIndexes.Length);
+            Assert.AreEqual(tableParameters1.RowInfoItems[0].BeginColumnIndexes[0], tableParameters2.RowInfoItems[0].BeginColumnIndexes[0]);
+            Assert.AreEqual(tableParameters1.RowInfoItems[0].BeginColumnIndexes[1], tableParameters2.RowInfoItems[0].BeginColumnIndexes[1]);
+            Assert.AreEqual(tableParameters1.RowInfoItems[0].BeginColumnIndexes[2], tableParameters2.RowInfoItems[0].BeginColumnIndexes[2]);
+            Assert.AreEqual(tableParameters1.RowInfoItems[0].BeginColumnIndexes[3], tableParameters2.RowInfoItems[0].BeginColumnIndexes[3]);
 
             // Сразу все.
             var tablesParameters = tableDetector.DetectAll(sampleText2);
 
             Assert.AreEqual(tablesParameters.Length, 2);
 
-            Assert.AreEqual(tableParameters1.BeginColumnIndexesItems[0].BeginColumnIndexes.Length, tablesParameters[0].BeginColumnIndexesItems[0].BeginColumnIndexes.Length);
-            Assert.AreEqual(tableParameters1.BeginColumnIndexesItems[0].BeginColumnIndexes[0], tablesParameters[0].BeginColumnIndexesItems[0].BeginColumnIndexes[0]);
-            Assert.AreEqual(tableParameters1.BeginColumnIndexesItems[0].BeginColumnIndexes[1], tablesParameters[0].BeginColumnIndexesItems[0].BeginColumnIndexes[1]);
-            Assert.AreEqual(tableParameters1.BeginColumnIndexesItems[0].BeginColumnIndexes[2], tablesParameters[0].BeginColumnIndexesItems[0].BeginColumnIndexes[2]);
-            Assert.AreEqual(tableParameters1.BeginColumnIndexesItems[0].BeginColumnIndexes[3], tablesParameters[0].BeginColumnIndexesItems[0].BeginColumnIndexes[3]);
+            Assert.AreEqual(tableParameters1.RowInfoItems[0].BeginColumnIndexes.Length, tablesParameters[0].RowInfoItems[0].BeginColumnIndexes.Length);
+            Assert.AreEqual(tableParameters1.RowInfoItems[0].BeginColumnIndexes[0], tablesParameters[0].RowInfoItems[0].BeginColumnIndexes[0]);
+            Assert.AreEqual(tableParameters1.RowInfoItems[0].BeginColumnIndexes[1], tablesParameters[0].RowInfoItems[0].BeginColumnIndexes[1]);
+            Assert.AreEqual(tableParameters1.RowInfoItems[0].BeginColumnIndexes[2], tablesParameters[0].RowInfoItems[0].BeginColumnIndexes[2]);
+            Assert.AreEqual(tableParameters1.RowInfoItems[0].BeginColumnIndexes[3], tablesParameters[0].RowInfoItems[0].BeginColumnIndexes[3]);
 
-            Assert.AreEqual(tableParameters1.BeginColumnIndexesItems[0].BeginColumnIndexes.Length, tablesParameters[0].BeginColumnIndexesItems[0].BeginColumnIndexes.Length);
-            Assert.AreEqual(tableParameters1.BeginColumnIndexesItems[0].BeginColumnIndexes[0], tablesParameters[0].BeginColumnIndexesItems[0].BeginColumnIndexes[0]);
-            Assert.AreEqual(tableParameters1.BeginColumnIndexesItems[0].BeginColumnIndexes[1], tablesParameters[0].BeginColumnIndexesItems[0].BeginColumnIndexes[1]);
-            Assert.AreEqual(tableParameters1.BeginColumnIndexesItems[0].BeginColumnIndexes[2], tablesParameters[0].BeginColumnIndexesItems[0].BeginColumnIndexes[2]);
-            Assert.AreEqual(tableParameters1.BeginColumnIndexesItems[0].BeginColumnIndexes[3], tablesParameters[0].BeginColumnIndexesItems[0].BeginColumnIndexes[3]);
+            Assert.AreEqual(tableParameters1.RowInfoItems[0].BeginColumnIndexes.Length, tablesParameters[0].RowInfoItems[0].BeginColumnIndexes.Length);
+            Assert.AreEqual(tableParameters1.RowInfoItems[0].BeginColumnIndexes[0], tablesParameters[0].RowInfoItems[0].BeginColumnIndexes[0]);
+            Assert.AreEqual(tableParameters1.RowInfoItems[0].BeginColumnIndexes[1], tablesParameters[0].RowInfoItems[0].BeginColumnIndexes[1]);
+            Assert.AreEqual(tableParameters1.RowInfoItems[0].BeginColumnIndexes[2], tablesParameters[0].RowInfoItems[0].BeginColumnIndexes[2]);
+            Assert.AreEqual(tableParameters1.RowInfoItems[0].BeginColumnIndexes[3], tablesParameters[0].RowInfoItems[0].BeginColumnIndexes[3]);
 
             Assert.Pass();
         }

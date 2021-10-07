@@ -122,13 +122,16 @@ namespace Tests
             };
 
             TableExtractor tableExtractor = new(tableDetectFeatures);
-            tableExtractor.ExtractNext(sampleText2);
+            bool extracted = tableExtractor.ExtractNext(sampleText2);
+            Assert.IsTrue(extracted);
+
             var masterData = tableExtractor.Data;
             string jsonData1 = tableExtractor.JsonData;
 
-            tableExtractor.ExtractNext(sampleText2);
-            string jsonData2 = tableExtractor.JsonData;
+            extracted = tableExtractor.ExtractNext(sampleText2);
+            Assert.IsTrue(extracted);
 
+            string jsonData2 = tableExtractor.JsonData;
             jsonData2 = jsonData2.Replace("333339", "333333");
 
             Assert.AreEqual(jsonData1, jsonData2);
