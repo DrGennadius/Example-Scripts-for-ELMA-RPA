@@ -372,7 +372,7 @@ namespace ELMA.RPA.Scripts
             bool isUsePrevRowInfoItem = rowInfoItem == null
                 || (string.IsNullOrWhiteSpace(rowInfoItem.BodyRowPattern)
                 && CommonTableHelper.IsEmptyRow(rowInfoItem.СontinuousBodyRowCellTexts));
-            RowInfoItem tragetRowInfoItem = isUsePrevRowInfoItem 
+            RowInfoItem tragetRowInfoItem = isUsePrevRowInfoItem
                 ? prevRowInfoItem
                 : rowInfoItem;
             if (!isValid
@@ -498,6 +498,7 @@ namespace ELMA.RPA.Scripts
             int[] beginColumnIndexes = Array.Empty<int>();
             RowInfoItem rowInfoItem = new(currentIndex, beginColumnIndexes);
 
+            int prevCurrentIndex = currentIndex;
             while (currentIndex < text.Length)
             {
                 beginColumnIndexes = DetectBeginColumnIndexes(text, ref currentIndex);
@@ -510,6 +511,30 @@ namespace ELMA.RPA.Scripts
                     rowInfoItem.СontinuousBodyRowCellTexts = Enumerable.Repeat("", beginColumnIndexes.Length).ToArray();
                     break;
                 }
+                else if (beginColumnIndexes.Length == lastRowInfoItem.BeginColumnIndexes.Length + 1
+                    && beginColumnIndexes[0] == 0)
+                {
+                    // Проверка на смещение, из-за которого в начале может получится "пропуск",
+                    // который опознан как разделитель
+                    int startIndex = rowInfoItem.TextBeginCharIndex;
+                    int endIndex = startIndex + beginColumnIndexes[1];
+                    string subText = text[startIndex..endIndex];
+                    if (string.IsNullOrWhiteSpace(subText))
+                    {
+                        beginColumnIndexes = beginColumnIndexes.Skip(1).ToArray();
+                        startIndex = prevCurrentIndex;
+                        endIndex = currentIndex - Environment.NewLine.Length;
+                        string rowText = text[startIndex..endIndex];
+                        double k = CalcSimilarRowK(GetPrimitiveCellText(rowText), beginColumnIndexes, lastRowInfoItem.СontinuousBodyRowCellTexts);
+                        if (k >= CommonSimilarRowMinK)
+                        {
+                            rowInfoItem.BeginColumnIndexes = beginColumnIndexes;
+                            rowInfoItem.СontinuousBodyRowCellTexts = Enumerable.Repeat("", beginColumnIndexes.Length).ToArray();
+                            break;
+                        }
+                    }
+                }
+                prevCurrentIndex = currentIndex;
             }
 
             return rowInfoItem;
@@ -595,7 +620,7 @@ namespace ELMA.RPA.Scripts
                     {
                         cells[i] = "";
                     }
-                    else if(endIndex >= subText.Length)
+                    else if (endIndex >= subText.Length)
                     {
                         cells[i] = subText[rowInfoItem.BeginColumnIndexes[i]..];
                     }
@@ -746,7 +771,7 @@ namespace ELMA.RPA.Scripts
             };
             // 1. Первым делом проверим строку по паттерну.
             double applyPatternK = 0.0;
-            if (!string.IsNullOrWhiteSpace(rowInfoItem.BodyRowPattern) 
+            if (!string.IsNullOrWhiteSpace(rowInfoItem.BodyRowPattern)
                 && Regex.IsMatch(rowText, rowInfoItem.BodyRowPattern))
             {
                 applyPatternK = ApplyRowPatternK;
@@ -783,8 +808,6 @@ namespace ELMA.RPA.Scripts
         /// </summary>
         /// <param name="rowText"></param>
         /// <param name="rowInfoItem"></param>
-        /// <param name="isUsePrevRowInfoItem"></param>
-        /// <param name="newRowInfoItem"></param>
         /// <returns></returns>
         private double CalcSimilarRowK(string rowText, RowInfoItem rowInfoItem)
         {
@@ -796,12 +819,26 @@ namespace ELMA.RPA.Scripts
         /// <summary>
         /// Посчитать коэфицент схожести строки.
         /// </summary>
+        /// <param name="rowText"></param>
+        /// <param name="beginColumnIndexes"></param>
+        /// <param name="continuousBodyRowCellTexts"></param>
+        /// <returns></returns>
+        private double CalcSimilarRowK(string rowText, int[] beginColumnIndexes, string[] continuousBodyRowCellTexts)
+        {
+            string[] rowCells = GetRowCellsForce(rowText, beginColumnIndexes);
+
+            return CalcSimilarRowK(rowCells, continuousBodyRowCellTexts);
+        }
+
+        /// <summary>
+        /// Посчитать коэфицент схожести строки.
+        /// </summary>
         /// <param name="rowCells"></param>
         /// <param name="continuousBodyRowCellTexts"></param>
         /// <returns></returns>
         private double CalcSimilarRowK(string[] rowCells, string[] continuousBodyRowCellTexts)
         {
-            double k = 0.0;            
+            double k = 0.0;
 
             if (continuousBodyRowCellTexts.Length > 0)
             {
@@ -967,7 +1004,7 @@ namespace ELMA.RPA.Scripts
                     string[] tempCells = GetRowCellsForce(rowText, tempBeginIndexesArray);
                     // TODO: Надо бы хранить где-то схожесть, чтобы потом не пересчитывать по новой.
                     double tempK = CalcSimilarRowK(
-                        tempCells.Select(x => GetPrimitiveCellText(x)).ToArray(), 
+                        tempCells.Select(x => GetPrimitiveCellText(x)).ToArray(),
                         rowInfoItem.СontinuousBodyRowCellTexts);
                     if (tempK > bestK)
                     {
