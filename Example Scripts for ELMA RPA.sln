@@ -51,6 +51,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Текст", "Текст", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Извлечение данных таблицы из текста", "Текст\Извлечение данных таблицы из текста\Извлечение данных таблицы из текста.csproj", "{2F69C1DF-7262-4E2B-A8A7-2FC0ABF6F25F}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Запуск процесса", "Системные\Запуск процесса\Запуск процесса.csproj", "{3B586D44-DBDE-4AC4-9C24-82603F8C0568}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -129,6 +131,10 @@ Global
 		{2F69C1DF-7262-4E2B-A8A7-2FC0ABF6F25F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2F69C1DF-7262-4E2B-A8A7-2FC0ABF6F25F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2F69C1DF-7262-4E2B-A8A7-2FC0ABF6F25F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3B586D44-DBDE-4AC4-9C24-82603F8C0568}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3B586D44-DBDE-4AC4-9C24-82603F8C0568}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3B586D44-DBDE-4AC4-9C24-82603F8C0568}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3B586D44-DBDE-4AC4-9C24-82603F8C0568}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -151,6 +157,7 @@ Global
 		{859DF188-FE81-414C-B88E-512BF7F22FEC} = {E43009DB-FC7A-46D2-BA42-A4FD7DB2E2B8}
 		{4C83BCED-236C-47EE-87AE-A80D1FF1CA0E} = {876E0C58-18C8-42EB-941A-4AED7708A8BB}
 		{2F69C1DF-7262-4E2B-A8A7-2FC0ABF6F25F} = {C06F7185-D36D-4A5C-A9A6-5382DA428599}
+		{3B586D44-DBDE-4AC4-9C24-82603F8C0568} = {E43009DB-FC7A-46D2-BA42-A4FD7DB2E2B8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {650EC797-C771-4943-A2B1-889572DA40D0}
