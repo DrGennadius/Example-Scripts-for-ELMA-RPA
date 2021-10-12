@@ -155,7 +155,7 @@ namespace ELMA.RPA.Scripts
                 // Кодировка для Unicode: Basic Latin и Cyrillic
                 Encoder = JavaScriptEncoder.Create(UnicodeRanges.BasicLatin, UnicodeRanges.Cyrillic)
             };
-            // Получение строки json закодированной в utf8 байты
+            // Получение строки json
             return JsonSerializer.Serialize(table, options);
         }
     }
