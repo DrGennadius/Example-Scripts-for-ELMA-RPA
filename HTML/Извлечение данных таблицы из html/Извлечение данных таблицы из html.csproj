@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net5.0</TargetFramework>
+		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+		<RootNamespace>ELMA.RPA.Scripts</RootNamespace>
+		<AssemblyName>ExtractTableDataFromHtml</AssemblyName>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Content Include="..\..\CommonAssets\Пример html 1.html" Link="Пример html 1.html">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="HtmlAgilityPack" Version="1.11.37" />
+    </ItemGroup>
+    
+</Project>
