@@ -248,7 +248,7 @@ namespace ELMA.RPA.Scripts
                 return "";
             }
 
-            string result = cell.CellValue.Text;
+            string result = cell.CellValue?.Text;
             if (cell.DataType != null && cell.DataType.HasValue && cell.DataType == CellValues.SharedString)
             {
                 var stringTable = Workbook.WorkbookPart.GetPartsOfType<SharedStringTablePart>().FirstOrDefault();
