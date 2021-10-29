@@ -59,6 +59,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Извлечение дан
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Извлечение данных нескольких таблиц из html", "HTML\Извлечение данных нескольких таблиц из html\Извлечение данных нескольких таблиц из html.csproj", "{D8CB6303-4A0C-43AD-BC6A-68C15F9F2684}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Генерация пароля", "Текст\Генерация пароля\Генерация пароля.csproj", "{14401AEB-0309-4B5D-BC58-81CE98CC4CF8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -149,6 +151,10 @@ Global
 		{D8CB6303-4A0C-43AD-BC6A-68C15F9F2684}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D8CB6303-4A0C-43AD-BC6A-68C15F9F2684}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D8CB6303-4A0C-43AD-BC6A-68C15F9F2684}.Release|Any CPU.Build.0 = Release|Any CPU
+		{14401AEB-0309-4B5D-BC58-81CE98CC4CF8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{14401AEB-0309-4B5D-BC58-81CE98CC4CF8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{14401AEB-0309-4B5D-BC58-81CE98CC4CF8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{14401AEB-0309-4B5D-BC58-81CE98CC4CF8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -174,6 +180,7 @@ Global
 		{3B586D44-DBDE-4AC4-9C24-82603F8C0568} = {E43009DB-FC7A-46D2-BA42-A4FD7DB2E2B8}
 		{94E9C862-8121-4FCC-9B56-21CDC7D499D1} = {F8BB416B-24E0-4320-8A3E-E1CF6E0671BF}
 		{D8CB6303-4A0C-43AD-BC6A-68C15F9F2684} = {F8BB416B-24E0-4320-8A3E-E1CF6E0671BF}
+		{14401AEB-0309-4B5D-BC58-81CE98CC4CF8} = {C06F7185-D36D-4A5C-A9A6-5382DA428599}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {650EC797-C771-4943-A2B1-889572DA40D0}

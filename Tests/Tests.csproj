@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="x-IA5"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Конфигурирование\Настройки в Excel\Настройки в Excel.csproj" />
+    <ProjectReference Include="..\Текст\Генерация пароля\Генерация пароля.csproj" />
     <ProjectReference Include="..\Текст\Извлечение данных таблицы из текста\Извлечение данных таблицы из текста.csproj" />
   </ItemGroup>
 
