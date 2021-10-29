@@ -26,9 +26,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Конфигурирование\Настройки в Excel\Настройки в Excel.csproj" />
-    <ProjectReference Include="..\Текст\Генерация пароля\Генерация пароля.csproj" />
-    <ProjectReference Include="..\Текст\Извлечение данных таблицы из текста\Извлечение данных таблицы из текста.csproj" />
+    <ProjectReference Include="..\Примеры\Конфигурирование\Настройки в Excel\Настройки в Excel.csproj" />
+    <ProjectReference Include="..\Примеры\Текст\Генерация пароля\Генерация пароля.csproj" />
+    <ProjectReference Include="..\Примеры\Текст\Извлечение данных таблицы из текста\Извлечение данных таблицы из текста.csproj" />
   </ItemGroup>
 
 </Project>

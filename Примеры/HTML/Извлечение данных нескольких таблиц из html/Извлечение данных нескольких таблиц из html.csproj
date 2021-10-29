@@ -9,7 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Content Include="..\..\CommonAssets\Пример html 2.html" Link="Пример html 2.html">
+      <Content Include="..\..\..\CommonAssets\Пример html 2.html" Link="Пример html 2.html">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
     </ItemGroup>

@@ -45,8 +45,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Проверка запущ
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Настройки в Excel", "Конфигурирование\Настройки в Excel\Настройки в Excel.csproj", "{4C83BCED-236C-47EE-87AE-A80D1FF1CA0E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tests", "Tests\Tests.csproj", "{A3369C62-18B1-47F8-95DF-F7501892C1E4}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Текст", "Текст", "{C06F7185-D36D-4A5C-A9A6-5382DA428599}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Извлечение данных таблицы из текста", "Текст\Извлечение данных таблицы из текста\Извлечение данных таблицы из текста.csproj", "{2F69C1DF-7262-4E2B-A8A7-2FC0ABF6F25F}"
@@ -131,10 +129,6 @@ Global
 		{4C83BCED-236C-47EE-87AE-A80D1FF1CA0E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4C83BCED-236C-47EE-87AE-A80D1FF1CA0E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4C83BCED-236C-47EE-87AE-A80D1FF1CA0E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A3369C62-18B1-47F8-95DF-F7501892C1E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A3369C62-18B1-47F8-95DF-F7501892C1E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A3369C62-18B1-47F8-95DF-F7501892C1E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A3369C62-18B1-47F8-95DF-F7501892C1E4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{2F69C1DF-7262-4E2B-A8A7-2FC0ABF6F25F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{2F69C1DF-7262-4E2B-A8A7-2FC0ABF6F25F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2F69C1DF-7262-4E2B-A8A7-2FC0ABF6F25F}.Release|Any CPU.ActiveCfg = Release|Any CPU
