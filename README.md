@@ -1,5 +1,5 @@
 # Example-Scripts-for-ELMA-RPA
-Примеры скриптов для ELMA RPA
+Примеры скриптов для [ELMA RPA](https://elma-rpa.ai/ru).
 
 ELMA RPA использует/генерирует проект (.csproj) со структурой:
 
@@ -33,4 +33,4 @@ ELMA RPA использует/генерирует проект (.csproj) со �
 
 ## Дополнительно
 
-Утилита для предотвращения сна Windows - [GSimpleWinSleepPreventer](https://github.com/DrGennadius/GSimpleWinSleepPreventer)
+Утилита для предотвращения сна Windows - [GSimpleWinSleepPreventer](https://github.com/DrGennadius/GSimpleWinSleepPreventer).
